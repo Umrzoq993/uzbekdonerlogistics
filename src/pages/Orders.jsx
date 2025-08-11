@@ -5,6 +5,8 @@ import {
   fetchOrders,
   patchOrderFlial,
   patchOrderCourier,
+  fetchOrderStatuses,
+  fetchOrderById,
 } from "../services/ordersService";
 import { fetchFlials } from "../services/flialsService";
 import {
@@ -12,23 +14,18 @@ import {
   fetchCourierById,
 } from "../services/couriersService";
 import MapModal from "../components/MapModal";
+import OrderDetailsModal from "../components/OrderDetailsModal";
 import {
   MapPin,
   ChevronsLeft,
   ChevronLeft,
   ChevronRight,
   ChevronsRight,
+  Info,
 } from "lucide-react";
 import "./orders.scss";
 
-const STATUS_OPTIONS = [
-  "",
-  "waiting",
-  "confirmed",
-  "rejected",
-  "onway",
-  "received",
-];
+const DEFAULT_STATUS_OPTIONS = [{ value: "", label: "—" }];
 
 // Kuryer nomini silliqlash + fallback
 const formatCourierName = (c) => {
@@ -39,6 +36,8 @@ const formatCourierName = (c) => {
 
 export default function Orders() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const [statusOptions, setStatusOptions] = useState(DEFAULT_STATUS_OPTIONS);
+  const [statusesErr, setStatusesErr] = useState("");
 
   const qp = useMemo(() => {
     const status = searchParams.get("status") || "";
@@ -47,6 +46,22 @@ export default function Orders() {
     const offset = Number(searchParams.get("offset") || 0);
     return { status, flial_id, limit, offset };
   }, [searchParams]);
+
+  // Statuslarni bir marta yuklash
+  useEffect(() => {
+    (async () => {
+      try {
+        const opts = await fetchOrderStatuses();
+        setStatusOptions(opts);
+        setStatusesErr("");
+      } catch (e) {
+        setStatusesErr(
+          e.response?.data?.detail || e.message || "Statuslar yuklanmadi"
+        );
+        setStatusOptions(DEFAULT_STATUS_OPTIONS); // fallback
+      }
+    })();
+  }, []);
 
   // Data
   const [rows, setRows] = useState([]);
@@ -69,6 +84,30 @@ export default function Orders() {
   // Map & saving
   const [selected, setSelected] = useState(null);
   const [saving, setSaving] = useState(() => new Set());
+
+  // Details modal
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [detailsError, setDetailsError] = useState("");
+  const [detailsData, setDetailsData] = useState(null);
+
+  const openDetails = async (orderId) => {
+    setDetailsOpen(true);
+    setDetailsLoading(true);
+    setDetailsError("");
+    setDetailsData(null);
+    try {
+      const order = await fetchOrderById(orderId);
+      setDetailsData(order);
+    } catch (e) {
+      setDetailsError(
+        e.response?.data?.detail || e.message || "Ma’lumotni olib bo‘lmadi"
+      );
+    } finally {
+      setDetailsLoading(false);
+    }
+  };
+  const closeDetails = () => setDetailsOpen(false);
 
   // Jump-to-page local state
   const [jumpInput, setJumpInput] = useState("");
@@ -311,11 +350,13 @@ export default function Orders() {
           <label>
             <span>Status</span>
             <select value={qp.status} onChange={onChangeStatus}>
-              {STATUS_OPTIONS.map((s) => (
-                <option key={s || "_"} value={s}>
-                  {s || "—"}
-                </option>
-              ))}
+              {(statusesErr ? DEFAULT_STATUS_OPTIONS : statusOptions).map(
+                (opt) => (
+                  <option key={opt.value || "_"} value={opt.value}>
+                    {opt.label}
+                  </option>
+                )
+              )}
             </select>
           </label>
 
@@ -380,6 +421,7 @@ export default function Orders() {
                   <th>Tugagan</th>
                   <th>Dostavka</th>
                   <th>Xarita</th>
+                  <th>Amallar</th>
                 </tr>
               </thead>
               <tbody>
@@ -390,6 +432,21 @@ export default function Orders() {
                   const list = couriersByFlial[flialId] || [];
                   const couriersIsLoading = couriersLoading[flialId];
                   const couriersError = couriersErr[flialId];
+
+                  // Faqat faol kuryerlar
+                  const activeOnly = Array.isArray(list)
+                    ? list.filter((c) => c.is_active)
+                    : [];
+
+                  // Tanlangan kuryer inaktiv bo‘lsa ham ko‘rinishi uchun:
+                  const selectedInactiveCourier =
+                    r.courier_id &&
+                    (() => {
+                      const found = list.find(
+                        (c) => String(c.id) === String(r.courier_id)
+                      );
+                      return found && !found.is_active ? found : null;
+                    })();
 
                   return (
                     <tr key={r.id}>
@@ -406,7 +463,6 @@ export default function Orders() {
                       </td>
                       <td>
                         <span className="pill">
-                          {/* payment_text bo‘lsa ko‘rsatamiz, aks holda type */}
                           {r.payment_text || r.payment_type || "-"}
                           {r.payment_status ? ` · ${r.payment_status}` : ""}
                         </span>
@@ -429,32 +485,26 @@ export default function Orders() {
                               couriersIsLoading ||
                               !!couriersError
                             }
-                            onFocus={async () => {
-                              if (flialId) {
-                                await ensureCouriers(flialId);
-                                if (r.courier_id) {
-                                  await ensureCourierPresence(
-                                    flialId,
-                                    r.courier_id
-                                  );
-                                }
-                              }
-                            }}
                           >
                             <option value="">
                               {flialId
-                                ? couriersIsLoading
-                                  ? "Yuklanmoqda..."
-                                  : couriersError
-                                  ? "Xatolik"
-                                  : "— Kuryer tanlang —"
+                                ? "— Kuryer tanlang —"
                                 : "Avval filial tanlang"}
                             </option>
 
-                            {list.map((c) => (
+                            {selectedInactiveCourier && (
+                              <option
+                                value={String(selectedInactiveCourier.id)}
+                              >
+                                {`${formatCourierName(
+                                  selectedInactiveCourier
+                                )} (faol emas)`}
+                              </option>
+                            )}
+
+                            {activeOnly.map((c) => (
                               <option key={c.id} value={String(c.id)}>
                                 {formatCourierName(c)}
-                                {c.is_active ? "" : " (faol emas)"}
                               </option>
                             ))}
                           </select>
@@ -506,6 +556,15 @@ export default function Orders() {
                           onClick={() => openMap(r)}
                         >
                           <MapPin size={18} />
+                        </button>
+                      </td>
+                      <td>
+                        <button
+                          className="action-btn"
+                          title="Batafsil"
+                          onClick={() => openDetails(r.id)}
+                        >
+                          <Info size={18} />
                         </button>
                       </td>
                     </tr>
@@ -616,6 +675,13 @@ export default function Orders() {
       </div>
 
       <MapModal open={!!selected} onClose={closeMap} order={selected} />
+      <OrderDetailsModal
+        open={detailsOpen}
+        loading={detailsLoading}
+        error={detailsError}
+        data={detailsData}
+        onClose={closeDetails}
+      />
     </div>
   );
 }

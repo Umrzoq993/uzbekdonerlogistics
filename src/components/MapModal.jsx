@@ -1,5 +1,4 @@
-// src/components/MapModal.jsx
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup, Polygon } from "react-leaflet";
 import L from "leaflet";
 import "./mapmodal.scss";
@@ -17,39 +16,41 @@ const DefaultIcon = new L.Icon({
 });
 L.Marker.prototype.options.icon = DefaultIcon;
 
-/**
- * Backward-compatible API:
- * Props:
- *  - open: boolean
- *  - onClose: () => void
- *  - order: ANY (order yoki flial). Fieldlar ichkarida normalize qilinadi.
- *
- * Normalize qilingan shape:
- *  {
- *    id, title, latitude, longitude,
- *    address?, phone?, coordinates?: Array<[lat,lng]> | Array<{lat,lng}>
- *  }
- */
 export default function MapModal({ open, onClose, order }) {
-  // normalize (o‘sha-o‘sha)
+  // Normalize
   const model = useMemo(() => {
     if (!order) return null;
     const lat = order.latitude ?? order.lat;
     const lng = order.longitude ?? order.lng ?? order.lon;
+
     const title =
       order.title ||
       order.name ||
       order.flial_name ||
       (order.id != null ? `ID: ${order.id}` : "Joy");
+
+    const addressText =
+      (typeof order.address === "string" ? order.address : null) ??
+      order.address?.address_text ??
+      order.address_text ??
+      order.flial?.address_text ??
+      order.flial_address ??
+      null;
+
+    const statusRaw =
+      typeof order.status === "string"
+        ? order.status
+        : order.status?.status || "";
+
     return {
       id: order.id ?? null,
       title,
       latitude: lat != null ? Number(lat) : null,
       longitude: lng != null ? Number(lng) : null,
-      address: order.address ?? null,
+      address: addressText,
       phone: order.phone ?? null,
       coordinates: Array.isArray(order.coordinates) ? order.coordinates : null,
-      status: (order.status || "").toLowerCase(),
+      status: (statusRaw || "").toLowerCase(),
     };
   }, [order]);
 
@@ -60,20 +61,21 @@ export default function MapModal({ open, onClose, order }) {
   const theme = useMemo(() => {
     switch (model?.status) {
       case "waiting":
-        return { cls: "popup--waiting", color: "#f59e0b" }; // amber-500
+        return { cls: "popup--waiting", color: "#f59e0b" };
       case "confirmed":
-        return { cls: "popup--confirmed", color: "#10b981" }; // emerald-500
+        return { cls: "popup--confirmed", color: "#10b981" };
       case "rejected":
-        return { cls: "popup--rejected", color: "#ef4444" }; // red-500
+        return { cls: "popup--rejected", color: "#ef4444" };
       case "onway":
-        return { cls: "popup--onway", color: "#3b82f6" }; // blue-500
+        return { cls: "popup--onway", color: "#3b82f6" };
       case "received":
-        return { cls: "popup--received", color: "#22c55e" }; // green-500
+        return { cls: "popup--received", color: "#22c55e" };
       default:
-        return { cls: "popup--neutral", color: "#6b7280" }; // gray-500
+        return { cls: "popup--neutral", color: "#6b7280" };
     }
   }, [model?.status]);
 
+  // Polygon (ixtiyoriy)
   const polygonLatLngs = useMemo(() => {
     const list = model?.coordinates;
     if (!list || list.length === 0) return null;
@@ -84,12 +86,17 @@ export default function MapModal({ open, onClose, order }) {
     );
   }, [model]);
 
+  // ESC bilan yopish
   useEffect(() => {
     if (!open) return;
     const onKey = (e) => e.key === "Escape" && onClose?.();
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
+
+  // Footer manzilni kengaytirib/qatlab ko‘rsatish
+  const [addrExpanded, setAddrExpanded] = useState(false);
+  const isLongAddr = (model?.address?.length ?? 0) > 80;
 
   if (!open) return null;
 
@@ -114,7 +121,17 @@ export default function MapModal({ open, onClose, order }) {
     }
   };
 
-  return !open ? null : (
+  const copyAddress = async () => {
+    if (!model?.address) return;
+    try {
+      await navigator.clipboard.writeText(model.address);
+      alert("Manzil nusxalandi!");
+    } catch {
+      alert("Nusxalab bo‘lmadi");
+    }
+  };
+
+  return (
     <div
       className="modal-root"
       onMouseDown={(e) => e.target === e.currentTarget && onClose?.()}
@@ -188,9 +205,48 @@ export default function MapModal({ open, onClose, order }) {
         </div>
 
         <div className="modal-foot">
-          <button className="btn" onClick={onClose}>
-            Yopish
-          </button>
+          <div className="foot-left">
+            <div className="foot-label">Manzil:</div>
+            <div
+              className={`foot-value ${addrExpanded ? "expanded" : "clamped"}`}
+              title={model?.address || ""}
+            >
+              {model?.address || "—"}
+            </div>
+
+            {/* Faollashtirilgan manzil harakatlari (ixtiyoriy) */}
+            {model?.address && (
+              <div className="foot-mini-actions">
+                {isLongAddr && (
+                  <button
+                    className="mini-link"
+                    onClick={() => setAddrExpanded((v) => !v)}
+                  >
+                    {addrExpanded ? "Kamroq" : "Ko‘proq"}
+                  </button>
+                )}
+                <button className="mini-link" onClick={copyAddress}>
+                  Nusxalash
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="foot-actions">
+            {hasGeo && (
+              <>
+                <button className="btn" onClick={openInGMaps}>
+                  Google Maps
+                </button>
+                <button className="btn" onClick={copyCoords}>
+                  Koordinatani nusxala
+                </button>
+              </>
+            )}
+            <button className="btn" onClick={onClose}>
+              Yopish
+            </button>
+          </div>
         </div>
       </div>
     </div>

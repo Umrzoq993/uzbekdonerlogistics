@@ -1,157 +1,185 @@
-// src/components/mapmodal.scss
-
+/* Backdrop va karta */
 .modal-root {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2000;
+  background: rgba(17, 24, 39, 0.45);
+  display: grid;
+  place-items: center;
+  z-index: 60;
 }
 
 .modal-card {
+  width: min(900px, 96vw);
+  max-height: 90vh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 10px;
   background: #fff;
-  border-radius: 10px;
-  max-width: 800px;
-  width: 95%;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
-  overflow: hidden;
+  border-radius: 14px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.22);
+  padding: 14px 14px 16px;
 }
 
-.modal-head,
-.modal-foot {
-  padding: 12px 16px;
-  background: #f8f9fa;
+.modal-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
 .modal-title {
-  font-size: 1.1rem;
-  font-weight: bold;
-}
-
-.modal-body {
-  padding: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #0f172a;
 }
 
 .icon-btn {
-  border: none;
-  background: none;
-  font-size: 20px;
-  cursor: pointer;
-  color: #555;
-}
-
-.icon-btn:hover {
-  color: #000;
-}
-
-.btn {
-  border: none;
-  padding: 6px 12px;
-  background-color: #2563eb;
-  color: #fff;
-  font-size: 0.9rem;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.btn:hover {
-  background-color: #1d4ed8;
-}
-
-.state {
-  padding: 40px;
-  text-align: center;
-  color: #777;
-}
-
-/* Marker popup styling */
-.leaflet-popup-content-wrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 30px;
   border-radius: 8px;
-  padding: 0;
-  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  cursor: pointer;
+}
+.icon-btn:hover {
+  background: #f3f4f6;
 }
 
+.modal-body {
+  min-height: 0;
+}
+.state {
+  padding: 16px;
+  color: #374151;
+}
+
+/* Popup ichidagi kontent */
 .popup {
-  padding: 10px;
-  font-size: 0.9rem;
+  font-size: 13.5px;
+  line-height: 1.35;
 }
-
 .popup-title {
-  font-weight: bold;
-  font-size: 1rem;
+  font-weight: 600;
   margin-bottom: 6px;
 }
-
 .popup-line {
   margin: 4px 0;
 }
-
 .popup-actions {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   margin-top: 8px;
 }
-
-.popup-actions .btn {
-  padding: 4px 8px;
-  font-size: 0.8rem;
-}
-
-/* mavjud kodlaringiz o‘sha-o‘sha, faqat quyidagilarni qo‘shing */
-
-/* Popup'ga status bo‘yicha rang temasi */
-.popup {
-  /* default */
-  --popup-color: #6b7280; /* gray-500 */
-  border-top: 4px solid var(--popup-color);
-}
-
-/* tip uchini ham bo‘yash uchun */
-.leaflet-popup-tip {
-  background: #fff; /* wrapper oq */
-  border-top: 4px solid transparent; /* vizual balans uchun */
-}
-
-/* Temalar */
-.popup--neutral {
-  --popup-color: #6b7280;
-} /* gray-500 */
-.popup--waiting {
-  --popup-color: #f59e0b;
-} /* amber-500 */
-.popup--confirmed {
-  --popup-color: #10b981;
-} /* emerald-500 */
-.popup--rejected {
-  --popup-color: #ef4444;
-} /* red-500 */
-.popup--onway {
-  --popup-color: #3b82f6;
-} /* blue-500 */
-.popup--received {
-  --popup-color: #22c55e;
-} /* green-500 */
-
-/* istasangiz matn rangini ham o‘zgartirasiz */
-.popup--rejected .popup-title {
-  color: #ef4444;
-}
-.popup--onway .popup-title {
-  color: #3b82f6;
+.popup--waiting .popup-title {
+  color: #b45309;
 }
 .popup--confirmed .popup-title {
-  color: #10b981;
+  color: #047857;
 }
-.popup--waiting .popup-title {
-  color: #d97706;
-} /* amber-600 */
+.popup--rejected .popup-title {
+  color: #b91c1c;
+}
+.popup--onway .popup-title {
+  color: #1d4ed8;
+}
 .popup--received .popup-title {
-  color: #16a34a;
-} /* green-600 */
+  color: #15803d;
+}
+.popup--neutral .popup-title {
+  color: #374151;
+}
+
+/* Footer */
+.modal-foot {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start; /* yuqoridan tekislash — uzun manzilga mos */
+  justify-content: space-between;
+  padding-top: 10px;
+  border-top: 1px solid #eee;
+}
+
+.foot-left {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 10px;
+  align-items: start;
+}
+
+.foot-label {
+  font-size: 13px;
+  color: #6b7280;
+  padding-top: 2px;
+}
+
+/* ————— Uzun manzilni boshqarish ————— */
+.foot-value {
+  font-size: 14px;
+  color: #111827;
+  max-width: 56vw; /* responsiv cheklov */
+  overflow: hidden;
+}
+
+.foot-value.clamped {
+  display: -webkit-box;
+  -webkit-line-clamp: 2; /* 2 qatorga siqish */
+  -webkit-box-orient: vertical;
+  white-space: normal;
+}
+
+.foot-value.expanded {
+  white-space: normal; /* to‘liq ko‘rsatish */
+}
+
+/* Manzil yonidagi mini havolalar */
+.foot-mini-actions {
+  grid-column: 2 / 3; /* faqat qiymat ostida */
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.mini-link {
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: #2563eb; /* blue-600 */
+  cursor: pointer;
+  font-size: 13px;
+}
+.mini-link:hover {
+  text-decoration: underline;
+}
+
+/* O‘ng tomondagi tugmalar */
+.foot-actions {
+  display: inline-flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.btn {
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  cursor: pointer;
+  font-weight: 500;
+}
+.btn:hover {
+  background: #f3f4f6;
+}
+
+/* Kichik ekran moslashuvi */
+@media (max-width: 640px) {
+  .modal-card {
+    width: 96vw;
+  }
+  .foot-value {
+    max-width: 52vw;
+  }
+}

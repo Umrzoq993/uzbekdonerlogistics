@@ -94,3 +94,26 @@ export async function patchOrderCourier(orderId, courierId) {
   });
   return res.data;
 }
+
+//: statuslar ro'yxati
+export async function fetchOrderStatuses() {
+  const res = await axios.get("/orders/statuses");
+  // backend: { waiting: "⏳ Kutish holatida", ... }
+  const obj = res.data || {};
+  // UI uchun massiv: [{value:'', label:'—'}, {value:'waiting', label:'⏳ Kutish holatida'}, ...]
+  const entries = Object.entries(obj).map(([value, label]) => ({
+    value,
+    label,
+  }));
+  // Tartib: waiting -> confirmed -> rejected -> onway -> received (kelgan tartibda ham qoldirsa bo'ladi)
+  return [{ value: "", label: "—" }, ...entries];
+}
+
+//: Buyurtma detali
+export async function fetchOrderById(orderId) {
+  const res = await axios.get("/orders/order", {
+    params: { order_id: Number(orderId) },
+  });
+  // backend: { order: {...} }
+  return res.data?.order || null;
+}

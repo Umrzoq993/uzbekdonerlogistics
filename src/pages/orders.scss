@@ -405,6 +405,25 @@
   width: 220px;
 }
 
+/* Zebra stripes: tbody qatorlari toq/juft */
+.orders-body .table tbody tr:nth-child(odd) td {
+  background: #ffffff; /* toq qator */
+}
+
+.orders-body .table tbody tr:nth-child(even) td {
+  background: #f5ebeb; /* juft qator */
+}
+
+/* Hover — yengil highlight (ixtiyoriy) */
+.orders-body .table tbody tr:hover td {
+  background: #f3f4f6;
+}
+
+/* Dense rejimda biroz kamroq kontrast istasangiz: */
+.table-wrap.dense .table tbody tr:nth-child(odd) td {
+  background: #fbfbfb;
+}
+
 /* Kuryer select o‘rami — spinner uchun joy va barqarorlik */
 .courier-select-wrap {
   position: relative;
@@ -415,7 +434,11 @@
 .courier-select {
   width: 100%;
   min-height: 32px;
-  padding-right: 36px; /* spinner joyi */
+  padding-right: 36px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Spinner: select ustida, layoutni buzmaydi */
@@ -437,4 +460,111 @@
   to {
     transform: translateY(-50%) rotate(360deg);
   }
+}
+
+/* ——— Amallar tugmasi ——— */
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  cursor: pointer;
+
+  &:hover {
+    background: #f3f4f6;
+  }
+}
+
+/* ——— Order Details Modal ——— */
+.odm-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.45); /* slate-900/45 */
+  display: grid;
+  place-items: center;
+  z-index: 50;
+}
+
+.odm-modal {
+  width: min(760px, 92vw);
+  max-height: 85vh;
+  overflow: auto;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  padding: 16px 16px 20px;
+}
+
+.odm-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+
+  h3 {
+    margin: 0;
+  }
+}
+
+.odm-close {
+  width: 34px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  cursor: pointer;
+  &:hover {
+    background: #f3f4f6;
+  }
+}
+
+.odm-state {
+  padding: 14px;
+}
+.odm-error {
+  color: #a30000;
+  background: #ffeaea;
+  border-radius: 8px;
+}
+
+.odm-grid {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 8px 12px;
+  margin-bottom: 14px;
+}
+
+.odm-row {
+  display: contents;
+}
+.odm-k {
+  color: #555;
+  font-size: 13px;
+}
+.odm-v {
+  color: #111;
+}
+
+.odm-subtitle {
+  margin: 8px 0 6px;
+  font-weight: 600;
+}
+
+.odm-items table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.odm-items th,
+.odm-items td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #f0f0f0;
+}
+.odm-items thead th {
+  background: #fafafa;
+  text-align: left;
 }
