@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback, memo } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import ReactPaginate from "react-paginate";
 import {
@@ -30,56 +30,12 @@ const STATUS_OPTIONS = [
   "received",
 ];
 
-/** Flicker-free Courier select (memo) */
-const CourierSelect = memo(function CourierSelect({
-  rowId,
-  flialId,
-  currentCourierId,
-  list,
-  isLoading,
-  error,
-  onOpen,
-  onChange,
-  disabled,
-}) {
-  const loading = !!isLoading;
-  const hasError = !!error;
-
-  return (
-    <div
-      className="courier-select-wrap"
-      onMouseEnter={onOpen}
-      onClick={onOpen}
-      title={hasError ? String(error) : undefined}
-    >
-      <select
-        className="courier-select"
-        value={currentCourierId != null ? String(currentCourierId) : ""}
-        onChange={(e) => onChange(e.target.value)}
-        disabled={disabled || hasError}
-      >
-        <option value="">
-          {!flialId
-            ? "Avval filial tanlang"
-            : hasError
-            ? "Xatolik"
-            : loading
-            ? "Kuryerlar yuklanmoqda..."
-            : "— Kuryer tanlang —"}
-        </option>
-        {!loading &&
-          !hasError &&
-          (list || []).map((c) => (
-            <option key={c.id} value={String(c.id)}>
-              {c.name}
-              {c.is_active ? "" : " (faol emas)"}
-            </option>
-          ))}
-      </select>
-      {loading && <span className="courier-spinner" aria-hidden="true" />}
-    </div>
-  );
-});
+// Kuryer nomini silliqlash + fallback
+const formatCourierName = (c) => {
+  const raw = (c?.name ?? "").trim();
+  const cleaned = raw.replace(/[\n\r]+/g, " · ").replace(/\s{2,}/g, " ");
+  return cleaned || `#${c?.id ?? ""}`;
+};
 
 export default function Orders() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -105,7 +61,7 @@ export default function Orders() {
   const [flialsLoading, setFlialsLoading] = useState(false);
   const [flialsErr, setFlialsErr] = useState("");
 
-  // Couriers cache
+  // Couriers cache: { [flialId]: Array<{id,name,flial_id,is_active}> }
   const [couriersByFlial, setCouriersByFlial] = useState({});
   const [couriersLoading, setCouriersLoading] = useState({});
   const [couriersErr, setCouriersErr] = useState({});
@@ -114,7 +70,7 @@ export default function Orders() {
   const [selected, setSelected] = useState(null);
   const [saving, setSaving] = useState(() => new Set());
 
-  // Jump-to-page (bir marta e’lon qilinadi!)
+  // Jump-to-page local state
   const [jumpInput, setJumpInput] = useState("");
 
   // URL helpers
@@ -215,13 +171,13 @@ export default function Orders() {
           setCouriersByFlial((m) => ({ ...m, [flialId]: merged }));
         }
       } catch {
-        /* optional */
+        // optional
       }
     },
     [couriersByFlial]
   );
 
-  // Prefetch after orders loaded
+  // Buyurtmalar kelgach, kuryer ro‘yxatlarini oldindan tayyorlab qo‘yish
   useEffect(() => {
     if (!Array.isArray(rows) || rows.length === 0) return;
     const flialIds = Array.from(
@@ -251,7 +207,7 @@ export default function Orders() {
   const pageCount = safeTotal != null ? Math.ceil(safeTotal / qp.limit) : null;
 
   const handlePageChange = (e) => {
-    const selected = e?.selected ?? 0;
+    const selected = e?.selected ?? 0; // 0-index
     const nextOffset = selected * qp.limit;
     setParam("offset", nextOffset);
   };
@@ -264,7 +220,6 @@ export default function Orders() {
     setParam("offset", nextOffset);
   };
 
-  // Jump submit (e'lon takrorlanmaydi)
   const onJumpSubmit = (e) => {
     e.preventDefault();
     if (pageCount == null) return;
@@ -273,7 +228,7 @@ export default function Orders() {
     setParam("offset", nextOffset);
   };
 
-  // From–To
+  // From–To indicator
   const from =
     safeTotal != null ? Math.min(qp.offset + 1, safeTotal) : qp.offset + 1;
   const to =
@@ -407,7 +362,7 @@ export default function Orders() {
           <div className="state">Yuklanmoqda...</div>
         ) : err ? (
           <div className="state error">{String(err)}</div>
-        ) : (Array.isArray(rows) ? rows : []).length === 0 ? (
+        ) : safeRows.length === 0 ? (
           <div className="state">Ma’lumot yo‘q</div>
         ) : (
           <div className="table-wrap">
@@ -428,7 +383,7 @@ export default function Orders() {
                 </tr>
               </thead>
               <tbody>
-                {(Array.isArray(rows) ? rows : []).map((r) => {
+                {safeRows.map((r) => {
                   const hasGeo = r.latitude != null && r.longitude != null;
                   const flialId = r.flial_id || "";
                   const savingThis = saving.has(r.id);
@@ -451,36 +406,66 @@ export default function Orders() {
                       </td>
                       <td>
                         <span className="pill">
-                          {r.payment_type || "-"}
+                          {/* payment_text bo‘lsa ko‘rsatamiz, aks holda type */}
+                          {r.payment_text || r.payment_type || "-"}
                           {r.payment_status ? ` · ${r.payment_status}` : ""}
                         </span>
                       </td>
 
-                      {/* Courier select */}
+                      {/* Kuryer select */}
                       <td>
-                        <CourierSelect
-                          rowId={r.id}
-                          flialId={flialId}
-                          currentCourierId={r.courier_id}
-                          list={list}
-                          isLoading={couriersIsLoading}
-                          error={couriersError}
-                          disabled={savingThis || !flialId}
-                          onOpen={async () => {
-                            if (!flialId) return;
-                            await ensureCouriers(flialId);
-                            if (r.courier_id) {
-                              await ensureCourierPresence(
-                                flialId,
-                                r.courier_id
-                              );
+                        <div className="courier-select-wrap">
+                          <select
+                            className="courier-select"
+                            value={
+                              r.courier_id != null ? String(r.courier_id) : ""
                             }
-                          }}
-                          onChange={(val) => handleAssignCourier(r, val)}
-                        />
+                            onChange={(e) =>
+                              handleAssignCourier(r, e.target.value)
+                            }
+                            disabled={
+                              savingThis ||
+                              !flialId ||
+                              couriersIsLoading ||
+                              !!couriersError
+                            }
+                            onFocus={async () => {
+                              if (flialId) {
+                                await ensureCouriers(flialId);
+                                if (r.courier_id) {
+                                  await ensureCourierPresence(
+                                    flialId,
+                                    r.courier_id
+                                  );
+                                }
+                              }
+                            }}
+                          >
+                            <option value="">
+                              {flialId
+                                ? couriersIsLoading
+                                  ? "Yuklanmoqda..."
+                                  : couriersError
+                                  ? "Xatolik"
+                                  : "— Kuryer tanlang —"
+                                : "Avval filial tanlang"}
+                            </option>
+
+                            {list.map((c) => (
+                              <option key={c.id} value={String(c.id)}>
+                                {formatCourierName(c)}
+                                {c.is_active ? "" : " (faol emas)"}
+                              </option>
+                            ))}
+                          </select>
+
+                          {couriersIsLoading && (
+                            <span className="courier-spinner" />
+                          )}
+                        </div>
                       </td>
 
-                      {/* Flial select */}
+                      {/* Filial select */}
                       <td>
                         <select
                           value={flialId}
@@ -543,7 +528,7 @@ export default function Orders() {
           ) : (
             <>
               Offset: <b>{qp.offset}</b>, Limit: <b>{qp.limit}</b>, Ko‘rinyapti:{" "}
-              <b>{(Array.isArray(rows) ? rows : []).length}</b>
+              <b>{safeRows.length}</b>
             </>
           )}
         </div>
