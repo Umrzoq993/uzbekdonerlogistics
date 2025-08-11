@@ -1,0 +1,440 @@
+@use "../styles/variables" as *;
+
+.orders-page {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 12px;
+  height: 100%;
+}
+
+.orders-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  h2 {
+    margin: 0;
+    color: $dark;
+  }
+
+  .filters {
+    display: flex;
+    gap: 10px;
+    align-items: end;
+    flex-wrap: wrap;
+
+    label {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      span {
+        font-size: 12px;
+        color: #666;
+      }
+      select,
+      input[type="text"] {
+        min-width: 140px;
+        padding: 8px 10px;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        background: #fff;
+        outline: none;
+        &:focus {
+          border-color: $primary;
+        }
+      }
+    }
+
+    .checkbox {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 2px;
+      input {
+        width: 16px;
+        height: 16px;
+      }
+      span {
+        font-size: 13px;
+        color: #333;
+      }
+    }
+
+    .btn.reset {
+      padding: 8px 12px;
+      border-radius: 10px;
+      border: 1px solid #e5e7eb;
+      background: #fff;
+      color: #666;
+      cursor: pointer;
+      &:hover {
+        background: #f3f4f6;
+      }
+    }
+  }
+}
+
+.orders-body {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: $shadow;
+  overflow: hidden;
+
+  /* Muhim: grid child scroll ishlashi uchun */
+  min-height: 0;
+
+  .state {
+    padding: 24px;
+  }
+  .state.error {
+    color: #a30000;
+    background: #ffeaea;
+  }
+
+  .table-wrap {
+    /* Jadval uchun to‘liq joyni egallasin va ichida scroll bo‘lsin */
+    height: 100%;
+    max-height: 100%;
+    overflow: auto;
+  }
+
+  .table {
+    width: 100%;
+    border-collapse: collapse;
+    th,
+    td {
+      padding: 10px 12px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    thead th {
+      background: #fafafa;
+      text-align: left;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+  }
+
+  /* Status chiplar */
+  .status {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 12px;
+    background: #f3f4f6;
+    color: #111;
+    border: 1px solid #e5e7eb;
+  }
+  .status--waiting {
+    background: #fff7ed;
+    border-color: #fed7aa;
+  }
+  .status--confirmed {
+    background: #ecfdf5;
+    border-color: #a7f3d0;
+  }
+  .status--rejected {
+    background: #fef2f2;
+    border-color: #fecaca;
+  }
+  .status--onway {
+    background: #eff6ff;
+    border-color: #bfdbfe;
+  }
+  .status--received {
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+  }
+
+  /* To'lov pill */
+  .pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 12px;
+    background: #eef2ff;
+    border: 1px solid #c7d2fe;
+  }
+
+  /* Xarita tugmasi */
+  .icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 30px;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    background: #fff;
+    cursor: pointer;
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    &:hover:not(:disabled) {
+      background: #f3f4f6;
+    }
+  }
+}
+
+/* Pastki panel */
+.orders-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  .page-info {
+    color: #333;
+  }
+
+  .pager .btn {
+    padding: 8px 12px;
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+    background: #fff;
+    color: #111; /* <-- matnni to‘q rangga majburiy qo‘yamiz */
+    font-weight: 600; /* biroz semizroq ko‘rinsin */
+    cursor: pointer;
+    margin-left: 8px;
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    &:hover:not(:disabled) {
+      background: #f3f4f6;
+    }
+  }
+}
+
+/* ——— Zich rejim (ixtiyoriy) ———
+   Orders.jsx’da table-wrap ga `dense` class berilsa, qatorlar kichrayadi */
+.table-wrap.dense .table th,
+.table-wrap.dense .table td {
+  padding: 4px 6px;
+  font-size: 12.5px;
+  line-height: 1.1;
+}
+
+/* Kichik ekranlar uchun mayda moslash */
+@media (max-width: 640px) {
+  .orders-header .filters {
+    gap: 8px;
+    label select {
+      min-width: 120px;
+    }
+  }
+  .orders-body .table th,
+  .orders-body .table td {
+    padding: 8px 10px;
+  }
+}
+
+// Jadval ichidagi select’lar
+.orders-body .table td select {
+  min-width: 180px;
+  padding: 6px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+  outline: none;
+  &:focus {
+    border-color: $primary;
+  }
+}
+
+/* ReactPaginate */
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0;
+  list-style: none;
+
+  .page-item,
+  .previous,
+  .next {
+    border: 1px solid #e5e7eb;
+    background: #fff;
+    border-radius: 10px;
+    padding: 6px 10px;
+    cursor: pointer;
+    user-select: none;
+
+    &:hover {
+      background: #f3f4f6;
+    }
+  }
+
+  .active {
+    background: $primary;
+    color: #fff;
+    border-color: $primary;
+  }
+
+  .disabled {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  .page-link {
+    text-decoration: none;
+  }
+}
+
+/* ReactPaginate - bar */
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* First/Prev/Next/Last control tugmalar */
+.pg-ctrl {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 30px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  &:hover:not(:disabled) {
+    background: #f3f4f6;
+  }
+}
+
+/* ReactPaginate page list */
+.pagination {
+  display: flex;
+  align-items: center;
+  list-style: none;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+
+  .page-item {
+    border: 1px solid #e5e7eb;
+    background: #fff;
+    border-radius: 10px;
+    min-width: 34px;
+    height: 30px;
+    padding: 0 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+
+    &:hover {
+      background: #f3f4f6;
+    }
+  }
+
+  .active {
+    background: $primary;
+    color: #fff;
+    border-color: $primary;
+  }
+
+  .disabled {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  .page-link {
+    text-decoration: none;
+    color: inherit;
+  }
+}
+
+/* Jump to page */
+.jump-form {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 6px;
+
+  span {
+    font-size: 13px;
+    color: #333;
+  }
+
+  input {
+    width: 72px;
+    padding: 6px 8px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    outline: none;
+    &:focus {
+      border-color: $primary;
+    }
+  }
+
+  .btn {
+    padding: 6px 10px;
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+    background: #fff;
+    cursor: pointer;
+    color: #111; /* <-- matnni to‘q rangga majburiy qo‘yamiz */
+    font-weight: 600; /* biroz semizroq ko‘rinsin */
+    &:hover {
+      background: #f3f4f6;
+    }
+  }
+}
+
+/* Jadval layoutini barqaror qilish */
+.orders-body .table {
+  table-layout: fixed;
+}
+
+/* 5-ustun (Kuryer) va 6-ustun (Filial) uchun qat'iy kenglik */
+.orders-body .table thead th:nth-child(5),
+.orders-body .table tbody td:nth-child(5) {
+  width: 230px;
+}
+
+.orders-body .table thead th:nth-child(6),
+.orders-body .table tbody td:nth-child(6) {
+  width: 220px;
+}
+
+/* Kuryer select o‘rami — spinner uchun joy va barqarorlik */
+.courier-select-wrap {
+  position: relative;
+  min-width: 220px;
+}
+
+/* Selectning o‘zi: spinner uchun o‘ng tomonda bo‘sh joy */
+.courier-select {
+  width: 100%;
+  min-height: 32px;
+  padding-right: 36px; /* spinner joyi */
+}
+
+/* Spinner: select ustida, layoutni buzmaydi */
+.courier-select-wrap .courier-spinner {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  transform: translateY(-50%);
+  border: 2px solid #cbd5e1; /* slate-300 */
+  border-top-color: #6366f1; /* indigo-500 */
+  border-radius: 50%;
+  animation: courier-spin 0.7s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes courier-spin {
+  to {
+    transform: translateY(-50%) rotate(360deg);
+  }
+}

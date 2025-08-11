@@ -1,0 +1,97 @@
+@use "../styles/variables" as *;
+
+.sidebar-root {
+  height: 100vh;
+  box-shadow: $shadow;
+
+  .sidebar-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px;
+    background: $dark;
+    color: #fff;
+
+    .logo {
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+    }
+    .title {
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      white-space: nowrap;
+    }
+  }
+
+  /* === COLLAPSE HOLATI ===
+     Faqat TOP-LEVEL elementlarning labelini yashiramiz.
+     Submenu FLYOUT ichidagi label'lar KO'RINIB TURADI. */
+  &.ps-collapsed {
+    .sidebar-header .title {
+      display: none;
+    }
+
+    /* Top-level MenuItem label'ini yashir */
+    .ps-menu-root > .ps-menuitem-root > .ps-menu-button .menu-label {
+      display: none;
+    }
+
+    /* Top-level SubMenu tugmasi label'ini yashir */
+    .ps-menu-root > .ps-submenu-root > .ps-menu-button .menu-label {
+      display: none;
+    }
+
+    /* Top-level tugmalar markazga — ikonka-only */
+    .ps-menu-root > .ps-menuitem-root > .ps-menu-button,
+    .ps-menu-root > .ps-submenu-root > .ps-menu-button {
+      justify-content: center;
+    }
+  }
+
+  /* Active row bg + left border */
+  .ps-menu-button {
+    border-left: 3px solid transparent;
+
+    &.link-active,
+    &.ps-active {
+      background: rgba(0, 0, 0, 0.06);
+      border-left-color: $primary;
+      font-weight: 600;
+    }
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.05);
+    }
+  }
+
+  /* Ikon ranglari */
+  .menu-icon {
+    opacity: 0.9;
+  }
+  .menu-icon.active {
+    color: $primary;
+    opacity: 1;
+  }
+}
+
+/* (Ixtiyoriy) Custom tooltip — agar native title o‘rniga chiroyli ko‘rinish istasangiz.
+   Buning uchun JS tomonda top-level elementlarga data-title qo‘shish kerak bo‘ladi. */
+.sidebar-root.ps-collapsed .ps-menu-button[data-title] {
+  position: relative;
+}
+.sidebar-root.ps-collapsed .ps-menu-button:hover::after {
+  content: attr(data-title);
+  position: absolute;
+  left: 72px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #111;
+  color: #fff;
+  padding: 6px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+  font-size: 12px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+}
