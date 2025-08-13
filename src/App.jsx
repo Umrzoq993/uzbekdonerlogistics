@@ -10,6 +10,7 @@ import NotFound from "./pages/NotFound";
 import FlialPolygons from "./pages/FlialPolygons";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import Categories from "./pages/Categories";
 
 export default function App() {
   return (
@@ -22,6 +23,7 @@ export default function App() {
             <Route path="orders" element={<Orders />} />
             <Route path="branches" element={<Branches />} />
             <Route path="branches/polygons" element={<FlialPolygons />} />
+            <Route path="categories" element={<Categories />} />
             <Route path="*" element={<NotFound />} />
           </Route>
         </Route>

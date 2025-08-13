@@ -1,7 +1,6 @@
-// src/components/SidebarMenu.jsx
 import React from "react";
 import { Sidebar, Menu, MenuItem, SubMenu } from "react-pro-sidebar";
-import { NavLink, useLocation } from "react-router-dom"; // <-- MUHIM! useLocation import
+import { NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   Package,
@@ -35,8 +34,8 @@ export default function SidebarMenu({
       className="sidebar-root"
       width="260px"
       collapsedWidth="80px"
-      collapsed={collapsed} // <-- props bilan boshqaramiz
-      toggled={toggled} // <-- mobile drawer
+      collapsed={collapsed}
+      toggled={toggled}
       onBackdropClick={onBackdropClick}
       breakPoint="md"
       onBreakPoint={onBreakPoint}
@@ -191,6 +190,26 @@ export default function SidebarMenu({
             <span className="menu-label">Yangi filial</span>
           </MenuItem>
         </SubMenu>
+
+        {/* YANGI: Kategoriyalar */}
+        <MenuItem
+          active={isActive("/categories", { prefix: true })}
+          icon={iconWithState(
+            <List />,
+            isActive("/categories", { prefix: true })
+          )}
+          title={collapsed ? "Kategoriyalar" : undefined}
+          component={
+            <NavLink
+              to="/categories"
+              className={({ isActive }) =>
+                isActive ? "link-active" : undefined
+              }
+            />
+          }
+        >
+          <span className="menu-label">Kategoriyalar</span>
+        </MenuItem>
       </Menu>
     </Sidebar>
   );
