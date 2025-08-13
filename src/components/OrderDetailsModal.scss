@@ -1,0 +1,278 @@
+@use "../styles/variables" as *;
+
+// -------- CSS variables (fallbacks agar $primary yo'q bo'lsa) ----------
+:root {
+  --odm-primary: #{if(global-variable-exists(primary), $primary, #6366f1)};
+  --odm-text: #0f172a; /* slate-900 */
+  --odm-subtle: #6b7280; /* gray-500 */
+  --odm-border: #e5e7eb; /* gray-200 */
+  --odm-bg: #ffffff;
+  --odm-bg-soft: #fafafa;
+  --odm-shadow: 0 12px 36px rgba(0, 0, 0, 0.18);
+}
+
+// -------- Animations ----------
+@keyframes odm-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes odm-pop {
+  from {
+    transform: translateY(8px) scale(0.98);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+// -------- Backdrop & container ----------
+.odm-backdrop {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(
+      1200px 600px at 10% -10%,
+      rgba(99, 102, 241, 0.12),
+      transparent
+    ),
+    radial-gradient(
+      900px 400px at 110% 110%,
+      rgba(16, 185, 129, 0.1),
+      transparent
+    ),
+    rgba(17, 24, 39, 0.45);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  display: grid;
+  place-items: center;
+  z-index: 70;
+  animation: odm-fade 0.15s ease-out;
+}
+
+.odm-modal {
+  width: min(860px, 96vw);
+  max-height: 88vh;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 14px;
+  background: var(--odm-bg);
+  border-radius: 16px;
+  border: 1px solid var(--odm-border);
+  box-shadow: var(--odm-shadow);
+  padding: 14px 14px 18px;
+  color: var(--odm-text);
+  animation: odm-pop 0.18s ease-out both;
+}
+
+// -------- Header ----------
+.odm-head {
+  position: sticky; /* yuqorida turadi */
+  top: 0;
+  z-index: 1;
+  background: linear-gradient(
+    0deg,
+    rgba(255, 255, 255, 0),
+    rgba(255, 255, 255, 0.9) 40%
+  );
+  padding-top: 4px;
+  margin: -4px -4px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.odm-head h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
+.odm-close {
+  width: 34px;
+  height: 30px;
+  border-radius: 10px;
+  border: 1px solid var(--odm-border);
+  background: #fff;
+  cursor: pointer;
+  transition: transform 0.06s ease, background 0.12s ease;
+}
+.odm-close:hover {
+  background: #f3f4f6;
+}
+.odm-close:active {
+  transform: scale(0.98);
+}
+
+// -------- States ----------
+.odm-state {
+  padding: 14px;
+  color: #374151;
+  background: #f8fafc;
+  border: 1px dashed #e2e8f0;
+  border-radius: 12px;
+}
+.odm-error {
+  color: #991b1b;
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+// -------- Body grid (metadata) ----------
+.odm-grid {
+  background: #fff;
+  border: 1px solid var(--odm-border);
+  border-radius: 14px;
+  padding: 12px;
+  display: grid;
+  grid-template-columns: 1.1fr 2fr;
+  gap: 10px 14px;
+}
+
+.odm-row {
+  display: contents;
+}
+
+.odm-k {
+  color: var(--odm-subtle);
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+}
+.odm-v {
+  font-size: 14px;
+  color: var(--odm-text);
+  word-break: break-word;
+}
+
+/* Selects (filial / kuryer) */
+.odm-v select {
+  width: 100%;
+  max-width: 360px;
+  min-width: 240px;
+  padding: 8px 10px;
+  border: 1px solid var(--odm-border);
+  border-radius: 10px;
+  background: #fff;
+  outline: none;
+  transition: box-shadow 0.15s ease, border-color 0.15s ease,
+    transform 0.04s ease;
+}
+.odm-v select:focus {
+  border-color: var(--odm-primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
+}
+.odm-v select:active {
+  transform: translateY(0.5px);
+}
+
+// -------- Section title ----------
+.odm-subtitle {
+  margin: 14px 0 10px;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.2px;
+  color: var(--odm-text);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  /* chiroyli rangli chiziq */
+  &:before {
+    content: "";
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--odm-primary);
+    box-shadow: 0 0 0 6px rgba(99, 102, 241, 0.12);
+  }
+}
+
+// -------- Items table ----------
+.odm-items {
+  background: #fff;
+  border: 1px solid var(--odm-border);
+  border-radius: 14px;
+  overflow: hidden; /* rounded thead */
+}
+
+.odm-items table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.odm-items thead th {
+  position: sticky;
+  top: 0;
+  background: linear-gradient(#fafafa, #f6f6f6);
+  color: #374151;
+  text-align: left;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--odm-border);
+  z-index: 1;
+}
+
+.odm-items td {
+  padding: 10px 12px;
+  font-size: 14px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+/* Zebra */
+.odm-items tbody tr:nth-child(odd) td {
+  background: #fcfcfc;
+}
+.odm-items tbody tr:nth-child(even) td {
+  background: #ffffff;
+}
+
+/* Footer total */
+.odm-items tfoot td {
+  background: #fbfbff;
+  border-top: 1px solid var(--odm-border);
+  font-weight: 600;
+}
+
+/* Mayda uyalar */
+.odm-items tbody tr:hover td {
+  background: #f6f7fb;
+}
+
+// -------- Small helpers ----------
+.odm-grid + .odm-subtitle {
+  margin-top: 16px;
+}
+
+@media (max-width: 720px) {
+  .odm-modal {
+    width: 96vw;
+  }
+  .odm-grid {
+    grid-template-columns: 1fr;
+  }
+  .odm-v select {
+    max-width: 100%;
+  }
+}
+
+/* Custom scrollbar (modal scrolli chiroyli ko‘rinsin) */
+.odm-modal::-webkit-scrollbar {
+  width: 10px;
+}
+.odm-modal::-webkit-scrollbar-thumb {
+  background: #e5e7eb;
+  border-radius: 999px;
+  border: 2px solid #fff;
+}
+.odm-modal::-webkit-scrollbar-thumb:hover {
+  background: #d1d5db;
+}

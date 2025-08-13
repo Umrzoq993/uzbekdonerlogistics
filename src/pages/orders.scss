@@ -32,7 +32,9 @@
         color: #666;
       }
       select,
-      input[type="text"] {
+      input[type="text"],
+      input[type="tel"],
+      input[type="number"] {
         min-width: 140px;
         padding: 8px 10px;
         border: 1px solid #e5e7eb;
