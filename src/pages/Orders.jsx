@@ -48,20 +48,19 @@ export default function Orders() {
   const [statusesErr, setStatusesErr] = useState("");
 
   // Map & details
-  const [selected, setSelected] = useState(null);
+  const [selected, setSelected] = useState(null); // MapModal
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [detailsId, setDetailsId] = useState(null);
 
-  // Draft inputlar (Enter/Qidirish bilan qo‘llanadi)
+  // Text filter draft’lari
   const [phoneDraft, setPhoneDraft] = useState(qp.phone || "");
   const [courierDraft, setCourierDraft] = useState(qp.courier_id || "");
 
-  useEffect(() => {
-    setPhoneDraft(qp.phone || "");
-  }, [qp.phone]);
-  useEffect(() => {
-    setCourierDraft(qp.courier_id || "");
-  }, [qp.courier_id]);
+  // Jump-to-page local state
+  const [jumpInput, setJumpInput] = useState("");
+
+  useEffect(() => setPhoneDraft(qp.phone || ""), [qp.phone]);
+  useEffect(() => setCourierDraft(qp.courier_id || ""), [qp.courier_id]);
 
   // URL helpers
   const setParam = (key, val) => {
@@ -139,11 +138,11 @@ export default function Orders() {
   // Pagination
   const safeRows = Array.isArray(rows) ? rows : [];
   const safeTotal = Number.isFinite(total) ? total : null;
-  const currentPage = Math.floor(qp.offset / qp.limit);
+  const currentPage = Math.floor(qp.offset / qp.limit); // 0-index
   const pageCount = safeTotal != null ? Math.ceil(safeTotal / qp.limit) : null;
 
   const handlePageChange = (e) => {
-    const selected = e?.selected ?? 0;
+    const selected = e?.selected ?? 0; // 0-index
     const nextOffset = selected * qp.limit;
     setParam("offset", nextOffset);
   };
@@ -171,9 +170,17 @@ export default function Orders() {
   };
 
   const onKeyDownText = (e) => {
-    if (e.key === "Enter") {
-      applyTextFilters();
-    }
+    if (e.key === "Enter") applyTextFilters();
+  };
+
+  // Jump submit
+  const onJumpSubmit = (e) => {
+    e.preventDefault();
+    if (pageCount == null) return;
+    const n = Math.max(1, Math.min(pageCount, Number(jumpInput) || 1));
+    const nextOffset = (n - 1) * qp.limit;
+    setParam("offset", nextOffset);
+    setJumpInput("");
   };
 
   // From–To
@@ -242,7 +249,6 @@ export default function Orders() {
             </select>
           </label>
 
-          {/* Yangi: Telefon bo‘yicha izlash */}
           <label>
             <span>Telefon</span>
             <input
@@ -255,7 +261,6 @@ export default function Orders() {
             />
           </label>
 
-          {/* Yangi: Kuryer ID bo‘yicha izlash */}
           <label>
             <span>Kuryer ID</span>
             <input
@@ -266,6 +271,17 @@ export default function Orders() {
               onChange={(e) => setCourierDraft(e.target.value)}
               onKeyDown={onKeyDownText}
             />
+          </label>
+
+          <label>
+            <span>Limit</span>
+            <select value={qp.limit} onChange={onChangeLimit}>
+              {[5, 10, 20, 50, 100].map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
           </label>
 
           <button className="btn" onClick={applyTextFilters}>
@@ -301,7 +317,7 @@ export default function Orders() {
                   <th>Filial</th>
                   <th>Dostavka</th>
                   <th>Xarita</th>
-                  <th>Info</th>
+                  <th>Amallar</th>
                 </tr>
               </thead>
               <tbody>
@@ -390,10 +406,29 @@ export default function Orders() {
 
         {pageCount != null && pageCount > 1 && (
           <div className="pagination-bar">
+            {/* Per-page (tezkor) */}
+            <div className="perpage">
+              <span>Ko‘rsatish:</span>
+              <select
+                value={qp.limit}
+                onChange={onChangeLimit}
+                aria-label="Bir sahifadagi qatorlar"
+              >
+                {[5, 10, 20, 50, 100].map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* First/Prev */}
             <button
               className="pg-ctrl"
               onClick={goFirst}
               disabled={currentPage <= 0}
+              aria-label="Birinchi sahifa"
+              title="Birinchi sahifa"
             >
               <ChevronsLeft size={16} />
             </button>
@@ -403,10 +438,13 @@ export default function Orders() {
                 handlePageChange({ selected: Math.max(0, currentPage - 1) })
               }
               disabled={currentPage <= 0}
+              aria-label="Oldingi sahifa"
+              title="Oldingi sahifa"
             >
               <ChevronLeft size={16} />
             </button>
 
+            {/* Page list */}
             <ReactPaginate
               previousLabel={null}
               nextLabel={null}
@@ -424,6 +462,7 @@ export default function Orders() {
               renderOnZeroPageCount={null}
             />
 
+            {/* Next/Last */}
             <button
               className="pg-ctrl"
               onClick={() =>
@@ -432,6 +471,8 @@ export default function Orders() {
                 })
               }
               disabled={currentPage >= pageCount - 1}
+              aria-label="Keyingi sahifa"
+              title="Keyingi sahifa"
             >
               <ChevronRight size={16} />
             </button>
@@ -439,9 +480,28 @@ export default function Orders() {
               className="pg-ctrl"
               onClick={goLast}
               disabled={currentPage >= pageCount - 1}
+              aria-label="Oxirgi sahifa"
+              title="Oxirgi sahifa"
             >
               <ChevronsRight size={16} />
             </button>
+
+            {/* Jump-to-page */}
+            <form className="jump-form" onSubmit={onJumpSubmit}>
+              <span>Sahifaga o‘tish:</span>
+              <input
+                type="number"
+                min={1}
+                max={pageCount}
+                value={jumpInput}
+                onChange={(e) => setJumpInput(e.target.value)}
+                placeholder={`${currentPage + 1}`}
+                aria-label="Sahifa raqami"
+              />
+              <button className="btn" type="submit">
+                O‘tish
+              </button>
+            </form>
           </div>
         )}
       </div>

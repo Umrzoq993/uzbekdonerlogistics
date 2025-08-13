@@ -288,6 +288,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap; /* tor ekranda chiroyli uzilsin */
 }
 
 /* First/Prev/Next/Last control tugmalar */
@@ -308,6 +309,30 @@
   }
   &:hover:not(:disabled) {
     background: #f3f4f6;
+  }
+}
+
+/* Per-page tezkor select */
+.perpage {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 4px;
+
+  span {
+    font-size: 13px;
+    color: #333;
+  }
+  select {
+    min-width: 84px;
+    padding: 6px 8px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #fff;
+    outline: none;
+  }
+  select:focus {
+    border-color: $primary;
   }
 }
 
