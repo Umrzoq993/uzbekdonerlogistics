@@ -90,7 +90,7 @@ export default function Login() {
           <div className="mini-stats">
             <div className="pill">24/7</div>
             <div className="pill">27000+ buyurtma</div>
-            <div className="pill">3 ta filial</div>
+            <div className="pill">4 ta filial</div>
           </div>
         </aside>
 
