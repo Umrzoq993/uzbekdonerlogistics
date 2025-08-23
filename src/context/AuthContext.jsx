@@ -1,122 +1,60 @@
-// context/AuthProvider.jsx (yoki shu fayl)
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  useCallback,
-} from "react";
-import api, { registerUnauthorizedHandler } from "../api/axiosConfig";
+// src/context/AuthContext.jsx
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import api, { ACCESS_TOKEN_KEY } from "../api/axiosConfig";
 
 const AuthCtx = createContext(null);
-const TOKEN_KEY = "auth_token";
-const EXP_KEY = "auth_exp";
 
+/**
+ * AuthProvider: tokenni localStorage bilan sinxronlaydi,
+ * axios.default Authorization header'ini boshqaradi,
+ * va "ready" flagi orqali ProtectedRoute ga to‘g‘ri ketma-ketlikni beradi.
+ */
 export function AuthProvider({ children }) {
-  const [token, setToken] = useState("");
   const [ready, setReady] = useState(false);
-  const logoutTimer = useRef(null);
-  const loggingOut = useRef(false);
+  const [token, setTokenState] = useState("");
 
-  const clearLogoutTimer = () => {
-    if (logoutTimer.current) {
-      clearTimeout(logoutTimer.current);
-      logoutTimer.current = null;
-    }
-  };
-
-  const logout = useCallback(() => {
-    if (loggingOut.current) return;
-    loggingOut.current = true;
-    clearLogoutTimer();
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(EXP_KEY);
-    setToken("");
-    // login sahifangiz boshqacha bo‘lsa moslang
-    if (window.location.pathname !== "/login") {
-      window.location.replace("/login");
-    }
-    setTimeout(() => (loggingOut.current = false), 500); // debouncing
+  // Ilk yuklanishda tokenni localStorage'dan o‘qiymiz
+  useEffect(() => {
+    const t = localStorage.getItem(ACCESS_TOKEN_KEY) || "";
+    setTokenState(t);
+    setReady(true);
   }, []);
 
-  // ⏱ exp bo‘yicha avtomatik logout
-  const scheduleAutoLogout = useCallback(
-    (expSec) => {
-      clearLogoutTimer();
-      const exp = Number(expSec);
-      if (!Number.isFinite(exp) || exp <= 0) return;
-      const msLeft = exp * 1000 - Date.now();
-      if (msLeft <= 0) {
-        logout();
-        return;
-      }
-      // 5s oldin
-      logoutTimer.current = setTimeout(logout, Math.max(0, msLeft - 5000));
-    },
-    [logout]
-  );
-
-  // 🔄 Boshlang‘ich yuklash
+  // Token o‘zgarsa — axios header'ini yangilaymiz
   useEffect(() => {
-    const t = localStorage.getItem(TOKEN_KEY) || "";
-    setToken(t);
-    const exp = localStorage.getItem(EXP_KEY);
-    if (t && exp) scheduleAutoLogout(Number(exp));
-    setReady(true);
-  }, [scheduleAutoLogout]);
-
-  // axios header (avvalgidek)
-  useEffect(() => {
-    if (token) api.defaults.headers.common.Authorization = `Bearer ${token}`;
-    else delete api.defaults.headers.common.Authorization;
+    if (token) {
+      api.defaults.headers.common.Authorization = `Bearer ${token}`;
+    } else {
+      delete api.defaults.headers.common.Authorization;
+    }
   }, [token]);
 
-  // 🔐 Login
-  const login = useCallback(
-    (accessToken) => {
-      localStorage.setItem(TOKEN_KEY, accessToken);
-      setToken(accessToken);
+  const isAuthed = !!token;
 
-      // JWT exp ni saqlash va timer qo‘yish
-      try {
-        const payload = JSON.parse(atob(accessToken.split(".")[1] || ""));
-        if (payload?.exp) {
-          localStorage.setItem(EXP_KEY, String(payload.exp));
-          scheduleAutoLogout(payload.exp);
-        } else {
-          localStorage.removeItem(EXP_KEY);
-          clearLogoutTimer();
-        }
-      } catch {
-        localStorage.removeItem(EXP_KEY);
-        clearLogoutTimer();
-      }
-    },
-    [scheduleAutoLogout]
-  );
+  // localStorage + state sinxron
+  const setToken = (t) => {
+    if (t) localStorage.setItem(ACCESS_TOKEN_KEY, t);
+    else localStorage.removeItem(ACCESS_TOKEN_KEY);
+    setTokenState(t || "");
+  };
 
-  // 🔔 401/403 holatlarida axios’dan keladigan signalni tutish
-  useEffect(() => {
-    registerUnauthorizedHandler(() => logout());
-  }, [logout]);
-
-  // 🪟 Boshqa tablarda logout bo‘lsa — sync
-  useEffect(() => {
-    const onStorage = (e) => {
-      if (e.key === TOKEN_KEY && !e.newValue) logout();
-    };
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
-  }, [logout]);
+  const logout = () => setToken("");
 
   const value = useMemo(
-    () => ({ token, isAuthed: !!token, ready, login, logout }),
-    [token, ready, login, logout]
+    () => ({
+      // states
+      ready,
+      isAuthed,
+      // actions
+      setToken,
+      logout,
+    }),
+    [ready, isAuthed]
   );
 
   return <AuthCtx.Provider value={value}>{children}</AuthCtx.Provider>;
 }
 
-export const useAuth = () => useContext(AuthCtx);
+export function useAuth() {
+  return useContext(AuthCtx);
+}

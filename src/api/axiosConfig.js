@@ -1,39 +1,36 @@
-// api/axiosConfig.js
+// src/api/axiosConfig.js
 import axios from "axios";
 
-let onUnauthorized = null;
-export function registerUnauthorizedHandler(fn) {
-  onUnauthorized = fn;
-}
+const BASE_URL =
+  (import.meta?.env?.VITE_API_BASE_URL ?? "").toString() ||
+  "https://uzbekdoner.adminsite.uz";
+
+export const ACCESS_TOKEN_KEY = "access_token";
 
 const api = axios.create({
-  baseURL: "https://uzbekdoner.adminsite.uz",
+  baseURL: BASE_URL,
   timeout: 20000,
 });
 
+// Har requestga token qo‘shish
 api.interceptors.request.use((config) => {
   const token =
-    localStorage.getItem("auth_token") || sessionStorage.getItem("auth_token");
+    localStorage.getItem(ACCESS_TOKEN_KEY) ||
+    sessionStorage.getItem(ACCESS_TOKEN_KEY);
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
-// ⛔️ 401/403 bo‘lsa — avtomatik logout
+// 401 -> logout + /login
 api.interceptors.response.use(
   (res) => res,
   (error) => {
     const status = error?.response?.status;
-    if (status === 401 || status === 403) {
-      try {
-        onUnauthorized?.(error);
-      } finally {
-        // fallback: agar handler ro‘yxatdan o‘tmagan bo‘lsa ham tozalab yuboramiz
-        localStorage.removeItem("auth_token");
-        localStorage.removeItem("auth_exp");
-        // login sahifangiz boshqacha bo‘lsa shu yo‘lni moslang
-        if (window.location.pathname !== "/login") {
-          window.location.replace("/login");
-        }
+    if (status === 401) {
+      localStorage.removeItem(ACCESS_TOKEN_KEY);
+      sessionStorage.removeItem(ACCESS_TOKEN_KEY);
+      if (window.location.pathname !== "/login") {
+        window.location.replace("/login");
       }
     }
     return Promise.reject(error);

@@ -1,3 +1,4 @@
+// src/pages/Login.jsx
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import api from "../api/axiosConfig";
@@ -13,18 +14,25 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
 
-  const { login } = useAuth();
+  const { setToken, ready, isAuthed } = useAuth();
   const navigate = useNavigate();
   const { state } = useLocation();
   const from = state?.from?.pathname || "/";
 
-  // Autofill sync (brauzer avto-to'ldirishiga)
+  // Agar allaqachon tizimga kirgan bo‘lsa, /login sahifasida turib qolmasin
+  useEffect(() => {
+    if (ready && isAuthed) {
+      navigate(from, { replace: true });
+    }
+  }, [ready, isAuthed, from, navigate]);
+
+  // Autofill sync (brauzer auto-to‘ldirishini React state bilan uyg‘unlashtirish)
   useEffect(() => {
     const t = setTimeout(() => {
       const u = document.querySelector('input[name="username"]');
       const p = document.querySelector('input[name="password"]');
-      if (u && u.value) setUsername((s) => s || u.value);
-      if (p && p.value) setPassword((s) => s || p.value);
+      if (u?.value) setUsername((s) => s || u.value);
+      if (p?.value) setPassword((s) => s || p.value);
     }, 120);
     return () => clearTimeout(t);
   }, []);
@@ -32,12 +40,14 @@ export default function Login() {
   const onPasswordKey = (e) =>
     setCapsOn(e.getModifierState && e.getModifierState("CapsLock"));
 
-  const handleSubmit = async (e) => {
+  async function handleSubmit(e) {
     e.preventDefault();
     if (loading) return;
+
     setErr("");
     setLoading(true);
     try {
+      // FastAPI OAuth2 Password flow: x-www-form-urlencoded
       const form = new URLSearchParams();
       form.append("grant_type", "password");
       form.append("username", (username || "").trim());
@@ -47,10 +57,21 @@ export default function Login() {
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
       });
 
-      // AuthContext login — tokenni localStorage'ga saqlaydi va axios header qo'yadi
-      await login(data.access_token);
+      // Token maydoni nomi turlicha bo‘lishi mumkin — ehtiyot chorasi:
+      const token =
+        data?.access_token ??
+        data?.token ??
+        data?.access ??
+        data?.data?.access ??
+        "";
+      if (!token) {
+        throw new Error("Access token topilmadi. Backend javobini tekshiring.");
+      }
 
-      // Navigatsiya
+      // Tokenni saqlaymiz (localStorage + axios header)
+      setToken(token);
+
+      // Oldin kirishga uringan manzilga, bo‘lmasa "/" ga qaytaramiz
       navigate(from, { replace: true });
     } catch (e) {
       const s = e?.response?.status;
@@ -65,7 +86,7 @@ export default function Login() {
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   return (
     <div className="login-hero">
@@ -74,6 +95,7 @@ export default function Login() {
       <div className="grid-bg" aria-hidden="true" />
 
       <div className="card">
+        {/* Brend panel (dekorativ) */}
         <aside className="brand-pane" aria-hidden="true">
           <div className="logo-wrap">
             <img src={logo} alt="Uzbek Doner" />
@@ -94,6 +116,7 @@ export default function Login() {
           </div>
         </aside>
 
+        {/* Login forma */}
         <form className="form-pane" onSubmit={handleSubmit} autoComplete="on">
           <div className="title">Hisobga kirish</div>
           <p className="subtitle">
@@ -111,7 +134,7 @@ export default function Login() {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               disabled={loading}
-              placeholder="admin"
+              placeholder="masalan: sobirtb"
               required
             />
           </label>
@@ -144,7 +167,6 @@ export default function Login() {
             {capsOn && <div className="hint warn">Caps Lock yoqilgan</div>}
           </label>
 
-          {/* remember me O‘CHIRILDI — faqat “parolni unutdingizmi?” link qoldirildi */}
           <div className="row row-aux">
             <div />
             <a href="#" onClick={(e) => e.preventDefault()} className="link">

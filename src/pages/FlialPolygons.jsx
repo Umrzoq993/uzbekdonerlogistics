@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+// src/pages/FlialPolygons.jsx
+import { useEffect, useMemo, useRef, useState, Fragment } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -13,7 +14,35 @@ import { fetchFlials, saveFlialPolygon } from "../services/flialsService";
 import { toast } from "react-toastify";
 import "./flial-polygons.scss";
 
-// Leaflet default marker ikonlari
+// ======= Yordamchi normalizatorlar / signature =======
+const EPS = 1e-6;
+const round6 = (n) => Math.round(n * 1e6) / 1e6;
+
+const samePt = (a, b) =>
+  Math.abs(a[0] - b[0]) < EPS && Math.abs(a[1] - b[1]) < EPS;
+
+function normCoords(coords) {
+  // coords: [[lat,lng], ...]
+  if (!Array.isArray(coords)) return [];
+  let arr = coords.map(([lat, lng]) => [round6(lat), round6(lng)]);
+  if (arr.length > 1 && samePt(arr[0], arr[arr.length - 1])) {
+    arr = arr.slice(0, -1);
+  }
+  return arr;
+}
+function sigFromCoords(coords) {
+  return JSON.stringify(normCoords(coords));
+}
+function layerRingToCoords(layer) {
+  try {
+    const ring = layer.getLatLngs()[0] || [];
+    return ring.map((ll) => [ll.lat, ll.lng]);
+  } catch {
+    return [];
+  }
+}
+
+// ======= Leaflet default marker ikonlari =======
 const DefaultIcon = new L.Icon({
   iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
   iconRetinaUrl:
@@ -58,7 +87,7 @@ const clearColorCfg = (id) => {
   localStorage.removeItem(opacityKey(id));
 };
 
-// Tema: faol/nofoal uchun default ranglar
+// Tema: faol/nofoal uchun default ranglar (tanlangan uchun)
 const defaultColorForFlial = (isActive) => (isActive ? "#2563eb" : "#9ca3af");
 const defaultStyleForFlial = (isActive) => ({
   color: defaultColorForFlial(isActive),
@@ -75,14 +104,93 @@ const makeStyle = ({ color, weight, fillOpacity }) => ({
   fillOpacity,
 });
 
-// Boshqa (read-only) filiallar uchun yengilroq ko‘rinish
-const themeForOther = (color, isActive) => ({
-  color: color || (isActive ? "#3b82f6" : "#9ca3af"),
-  weight: 1.5,
-  dashArray: isActive ? "6 4" : "2 4",
-  fillColor: color || (isActive ? "#93c5fd" : "#e5e7eb"),
-  fillOpacity: 0.12,
-});
+// ======= DASTLABKI KO‘RINISH UCHUN TURFALANGAN RANGLAR (vivid) =======
+const DISTINCT_COLORS = [
+  "#FF1744",
+  "#FF3D00",
+  "#FF6D00",
+  "#FFAB00",
+  "#FFD600",
+  "#C6FF00",
+  "#76FF03",
+  "#00E676",
+  "#1DE9B6",
+  "#00E5FF",
+  "#00B0FF",
+  "#2979FF",
+  "#3F51FF",
+  "#651FFF",
+  "#AA00FF",
+  "#D500F9",
+  "#F50057",
+  "#FF4081",
+  "#FF8A80",
+  "#FF6E40",
+  "#FDD835",
+  "#64DD17",
+  "#00C853",
+  "#00BFA5",
+];
+// id ga barqaror indeks (hash) — har doim bir xil rang berish uchun
+function distinctColorById(id) {
+  const s = String(id);
+  let h = 7;
+  for (let i = 0; i < s.length; i++) h = (h * 33 + s.charCodeAt(i)) | 0;
+  const idx = Math.abs(h) % DISTINCT_COLORS.length;
+  return DISTINCT_COLORS[idx];
+}
+
+// HEX -> {r,g,b}
+function hexToRgb(hex) {
+  const s = hex.replace("#", "");
+  const v =
+    s.length === 3
+      ? s
+          .split("")
+          .map((c) => c + c)
+          .join("")
+      : s.padStart(6, "0");
+  const num = parseInt(v, 16);
+  return { r: (num >> 16) & 255, g: (num >> 8) & 255, b: num & 255 };
+}
+
+// Quyuqlashtirish (0..1), RGB ni ko‘paytirish bilan
+function darken(hex, amount = 0.22) {
+  const { r, g, b } = hexToRgb(hex);
+  const k = Math.max(0, Math.min(1, 1 - amount));
+  const rr = Math.round(r * k);
+  const gg = Math.round(g * k);
+  const bb = Math.round(b * k);
+  return (
+    "#" + [rr, gg, bb].map((x) => x.toString(16).padStart(2, "0")).join("")
+  );
+}
+
+// Dash pattern to‘plami — id bo‘yicha har xil
+const DASHES = ["6 4", "8 3", "4 3", "2 2", "10 4", "12 3", "5 2", "7 5"];
+function dashById(id) {
+  const s = String(id);
+  let h = 3;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return DASHES[Math.abs(h) % DASHES.length];
+}
+
+// Boshqa (read-only) filiallar uchun ko‘rinish:
+// — fillColor: bazaviy vivid rang
+// — color (kontur): bazaviy rangning quyuqlashtirilgani
+// — dashArray: id bo‘yicha farqli
+function themeForOther(id, baseHex) {
+  return {
+    color: darken(baseHex, 0.22),
+    weight: 1.8,
+    dashArray: dashById(id),
+    fillColor: baseHex,
+    fillOpacity: 0.18,
+    opacity: 1,
+    lineJoin: "round",
+    lineCap: "round",
+  };
+}
 
 // Oddiy ray-casting algoritm: nuqta poligon ichidami?
 function pointInPolygon(point, polygon) {
@@ -102,7 +210,7 @@ function pointInPolygon(point, polygon) {
   return inside;
 }
 
-// Geoman integratsiyasi va poligon boshqaruvi (faqat tanlangan filial uchun)
+// ======= Geoman integratsiyasi va poligon boshqaruvi (faqat tanlangan filial) =======
 function GeomanPolygon({
   coords,
   setCoords,
@@ -112,8 +220,9 @@ function GeomanPolygon({
 }) {
   const map = useMap();
   const layerRef = useRef(null);
+  const baselineSigRef = useRef("");
 
-  // Geoman controls + global options
+  // Controls + global options
   useEffect(() => {
     map.pm.addControls({
       position: "topright",
@@ -137,6 +246,54 @@ function GeomanPolygon({
       snapDistance: 20,
     });
 
+    return () => {
+      map.pm.removeControls();
+    };
+  }, [map]);
+
+  const readNormFromLayer = () =>
+    normCoords(layerRingToCoords(layerRef.current));
+  const sigFromLayer = () => sigFromCoords(layerRingToCoords(layerRef.current));
+
+  const bindLayerEvents = () => {
+    if (!layerRef.current) return;
+    const layer = layerRef.current;
+
+    const markDirty = (commit) => {
+      const nowSig = sigFromLayer();
+      const changed = nowSig !== baselineSigRef.current;
+      onDirtyChange?.(changed);
+      if (commit) {
+        const next = readNormFromLayer();
+        setCoords((prev) =>
+          sigFromCoords(prev) === sigFromCoords(next) ? prev : next
+        );
+      }
+    };
+
+    const onEdit = () => markDirty(false);
+    const onVertex = () => markDirty(true);
+    const onUpdate = () => markDirty(true);
+    const onOther = () => markDirty(true);
+
+    layer.on("pm:edit", onEdit);
+    layer.on("pm:update", onUpdate);
+    layer.on("pm:vertexadded", onVertex);
+    layer.on("pm:vertexremoved", onVertex);
+    layer.on("pm:markerdragend", onOther);
+    layer.on("pm:cut", onOther);
+
+    layer.on("remove", () => {
+      layer.off("pm:edit", onEdit);
+      layer.off("pm:update", onUpdate);
+      layer.off("pm:vertexadded", onVertex);
+      layer.off("pm:vertexremoved", onVertex);
+      layer.off("pm:markerdragend", onOther);
+      layer.off("pm:cut", onOther);
+    });
+  };
+
+  useEffect(() => {
     const onCreate = (e) => {
       if (layerRef.current) {
         try {
@@ -145,23 +302,21 @@ function GeomanPolygon({
         layerRef.current = null;
       }
       layerRef.current = e.layer;
-      if (layerRef.current.pm) layerRef.current.pm.enable();
+      layerRef.current.addTo(map);
+      if (layerRef.current.pm)
+        layerRef.current.pm.enable({
+          allowSelfIntersection: false,
+          snappable: true,
+          snapDistance: 20,
+        });
       if (style) layerRef.current.setStyle(style);
 
-      const latlngs =
-        e.layer.getLatLngs()[0]?.map((ll) => [ll.lat, ll.lng]) || [];
-      setCoords(latlngs);
-      onDirtyChange(true);
-    };
-
-    const onEdit = (e) => {
-      const target = e.layer || layerRef.current;
-      if (!target) return;
-      const ring = target.getLatLngs()[0] || [];
-      const next = ring.map((ll) => [ll.lat, ll.lng]);
+      const next = normCoords(layerRingToCoords(layerRef.current));
+      baselineSigRef.current = sigFromCoords([]); // bo‘sh bazaga nisbatan
+      onDirtyChange?.(true);
       setCoords(next);
-      onDirtyChange(true);
-      if (style && target.setStyle) target.setStyle(style);
+
+      bindLayerEvents();
     };
 
     const onRemove = () => {
@@ -171,34 +326,48 @@ function GeomanPolygon({
         } catch {}
         layerRef.current = null;
       }
+      onDirtyChange?.(true);
       setCoords([]);
-      onDirtyChange(true);
     };
 
     map.on("pm:create", onCreate);
-    map.on("pm:edit", onEdit);
     map.on("pm:remove", onRemove);
-
     return () => {
-      map.pm.removeControls();
       map.off("pm:create", onCreate);
-      map.off("pm:edit", onEdit);
       map.off("pm:remove", onRemove);
     };
-  }, [map, setCoords, onDirtyChange, style]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [map, style, setCoords, onDirtyChange]);
 
   // Tashqi coords o‘zgarganda layerni sinxronlash
   useEffect(() => {
+    const nextNorm = normCoords(coords);
+    const nextSig = sigFromCoords(nextNorm);
+
     if (layerRef.current) {
+      const curSig = sigFromLayer();
+      if (curSig === nextSig) {
+        if (style) layerRef.current.setStyle(style);
+        return;
+      }
       try {
         layerRef.current.remove();
       } catch {}
       layerRef.current = null;
     }
-    if (coords && coords.length) {
-      const poly = L.polygon(coords, style).addTo(map);
+
+    if (nextNorm && nextNorm.length) {
+      const poly = L.polygon(nextNorm, style).addTo(map);
       layerRef.current = poly;
-      if (poly.pm) poly.pm.enable();
+      if (poly.pm)
+        poly.pm.enable({
+          allowSelfIntersection: false,
+          snappable: true,
+          snapDistance: 20,
+        });
+
+      baselineSigRef.current = nextSig;
+      onDirtyChange?.(false);
 
       if (autoFit) {
         try {
@@ -208,34 +377,64 @@ function GeomanPolygon({
           }
         } catch {}
       }
+
+      bindLayerEvents();
+    } else {
+      baselineSigRef.current = sigFromCoords([]);
+      onDirtyChange?.(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [coords, map, style, autoFit]);
+
+  useEffect(() => {
+    if (layerRef.current && style) {
+      try {
+        layerRef.current.setStyle(style);
+      } catch {}
+    }
+  }, [style]);
 
   return null;
 }
 
-// Barcha filiallar poligonlari + markerlarini chizish (read-only)
+// ======= Barcha filiallar poligonlari + markerlari (read-only) =======
 function AllOverlays({ flials, selectedId }) {
   return (
     <>
       {flials.map((f) => {
-        const isSelected = String(f.id) === String(selectedId);
+        const isSelected = selectedId && String(f.id) === String(selectedId);
         const coords = Array.isArray(f.coordinates) ? f.coordinates : [];
-        const cfg = loadColorCfg(
-          f.id,
-          defaultStyleForFlial(Boolean(f.is_active))
-        );
+
+        // Id bo‘yicha vivid rang:
+        const vivid = distinctColorById(f.id);
+
+        // LocalStorage’da saqlangan bo‘lsa, o‘shani ishlatamiz, aks holda vivid
+        const cfg = loadColorCfg(f.id, {
+          color: vivid,
+          weight: 2.5,
+          fillOpacity: 0.25,
+        });
+
+        const baseHex = cfg.color || vivid;
+        const strokeHex = darken(baseHex, 0.22);
+
+        const pathOptions = isSelected
+          ? {
+              color: strokeHex,
+              weight: 3,
+              dashArray: null,
+              fillColor: baseHex,
+              fillOpacity: 0.32,
+              opacity: 1,
+              lineJoin: "round",
+              lineCap: "round",
+            }
+          : themeForOther(f.id, baseHex);
+
         return (
           <Fragment key={`over-${f.id}`}>
             {coords.length >= 3 && (
-              <Polygon
-                positions={coords}
-                pathOptions={
-                  isSelected
-                    ? makeStyle(cfg)
-                    : themeForOther(cfg.color, Boolean(f.is_active))
-                }
-              />
+              <Polygon positions={coords} pathOptions={pathOptions} />
             )}
             {f.latitude != null && f.longitude != null && (
               <Marker position={[Number(f.latitude), Number(f.longitude)]}>
@@ -253,13 +452,13 @@ function AllOverlays({ flials, selectedId }) {
                         width: 12,
                         height: 12,
                         borderRadius: 999,
-                        background: cfg.color,
+                        background: baseHex,
                         border: "1px solid rgba(0,0,0,.1)",
                         verticalAlign: -2,
                         marginRight: 6,
                       }}
                     />
-                    <code>{cfg.color}</code>
+                    <code>{baseHex}</code>
                   </div>
                 </Popup>
               </Marker>
@@ -270,9 +469,8 @@ function AllOverlays({ flials, selectedId }) {
     </>
   );
 }
-import { Fragment } from "react";
 
-// Barcha poligon va markerlarga qarab auto-fit
+// ======= Barcha poligon va markerlarga qarab auto-fit =======
 function FitAllBounds({ flials, selectedCoords }) {
   const map = useMap();
   useEffect(() => {
@@ -298,7 +496,7 @@ function FitAllBounds({ flials, selectedCoords }) {
   return null;
 }
 
-// Xaritaga bosib test qilish uchun
+// ======= Xaritaga bosib test qilish =======
 function MapClickTester({ enabled, onClick }) {
   const map = useMap();
   useEffect(() => {
@@ -315,19 +513,20 @@ export default function FlialPolygons() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
 
+  // ❗ Dastlab hech narsa tanlanmagan
   const [selectedId, setSelectedId] = useState("");
   const selectedFlial = useMemo(
     () => flials.find((f) => String(f.id) === String(selectedId)),
     [flials, selectedId]
   );
 
-  // Tanlangan filial poligoni (koordinata)
+  // Tanlangan filial poligoni (koord)
   const [coords, setCoords] = useState([]); // [[lat,lng], ...]
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [mapKey, setMapKey] = useState(1);
 
-  // Rang boshqaruvi
+  // Rang boshqaruvi (tanlangan uchun)
   const defaults = defaultStyleForFlial(Boolean(selectedFlial?.is_active));
   const [polyColor, setPolyColor] = useState(defaults.color);
   const [polyWeight, setPolyWeight] = useState(defaults.weight);
@@ -347,21 +546,10 @@ export default function FlialPolygons() {
       try {
         const list = await fetchFlials();
         setFlials(list);
-        if (list.length && !selectedId) {
-          const first = list[0];
-          setSelectedId(String(first.id));
-          setCoords(Array.isArray(first.coordinates) ? first.coordinates : []);
-          setDirty(false);
-          // Rang konfiguratsiyasini yuklash
-          const cfg = loadColorCfg(
-            first.id,
-            defaultStyleForFlial(Boolean(first.is_active))
-          );
-          setPolyColor(cfg.color);
-          setPolyWeight(cfg.weight);
-          setPolyOpacity(cfg.fillOpacity);
-          setMapKey((k) => k + 1);
-        }
+        // ❗ Hech narsa tanlanmaydi: selectedId="" qoladi, coords=[]
+        setCoords([]);
+        setDirty(false);
+        setMapKey((k) => k + 1); // map init refresh
       } catch (e) {
         const msg =
           e?.response?.data?.detail ||
@@ -376,18 +564,28 @@ export default function FlialPolygons() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const onDirtyChange = (v) => setDirty(v);
+  const onDirtyChange = (v) => setDirty(Boolean(v));
 
   const handleSelectFlial = (e) => {
     const id = e.target.value;
     setSelectedId(id);
+
+    if (!id) {
+      // ❗ Tanlovni bekor qilish: tahrirlash o‘chadi, hamma poligonlar barobar
+      setCoords([]);
+      setDirty(false);
+      setMapKey((k) => k + 1);
+      setTestPoint(null);
+      setTestResult(null);
+      return;
+    }
 
     const f = flials.find((x) => String(x.id) === String(id));
     const orig = Array.isArray(f?.coordinates) ? f.coordinates : [];
     setCoords(orig);
     setDirty(false);
 
-    // Rang konfiguratsiyasini yuklash
+    // Rang konfiguratsiyasi (faqat tanlangan uchun)
     const cfg = loadColorCfg(id, defaultStyleForFlial(Boolean(f?.is_active)));
     setPolyColor(cfg.color);
     setPolyWeight(cfg.weight);
@@ -405,7 +603,7 @@ export default function FlialPolygons() {
       : [];
     setCoords(orig);
     setDirty(false);
-    // Rangni defaultiga qaytarish (lekin saqlangan rangni o‘chirmaymiz)
+
     const cfg = loadColorCfg(
       selectedFlial.id,
       defaultStyleForFlial(Boolean(selectedFlial.is_active))
@@ -431,17 +629,23 @@ export default function FlialPolygons() {
 
   const handleSave = async () => {
     if (!selectedId) return;
+    const payload = normCoords(coords);
+    if (payload.length < 3) {
+      toast.warn("Poligon uchun kamida 3 nuqta kerak.");
+      return;
+    }
     setSaving(true);
     try {
-      await saveFlialPolygon(selectedId, coords);
+      await saveFlialPolygon(selectedId, payload);
       setFlials((prev) =>
         prev.map((f) =>
           String(f.id) === String(selectedId)
-            ? { ...f, coordinates: coords }
+            ? { ...f, coordinates: payload }
             : f
         )
       );
       setDirty(false);
+      setMapKey((k) => k + 1);
       toast.success("Poligon saqlandi ✓");
     } catch (e) {
       toast.error(
@@ -460,7 +664,6 @@ export default function FlialPolygons() {
       fillOpacity: polyOpacity,
     });
     toast.success("Poligon rangi saqlandi ✓");
-    // Ko‘rinishni yangilash uchun mapKey ni o‘zgartirish shart emas; state yetarli
   };
 
   const handleResetStyle = () => {
@@ -504,7 +707,7 @@ export default function FlialPolygons() {
     return DEFAULT_CENTER;
   }, [coords, selectedFlial]);
 
-  // Tanlangan filial uchun amaldagi style
+  // Tanlangan filial uchun amaldagi style (faqat tanlanganda ishlatiladi)
   const activeStyle = makeStyle({
     color: polyColor,
     weight: polyWeight,
@@ -524,6 +727,8 @@ export default function FlialPolygons() {
               onChange={handleSelectFlial}
               disabled={loading || !!err}
             >
+              {/* ❗ placeholder: dastlab hech narsa tanlanmagan */}
+              <option value="">— Filial tanlang —</option>
               {flials.map((f) => (
                 <option key={f.id} value={String(f.id)}>
                   {f.name} {f.is_active ? "" : " · (faol emas)"}
@@ -537,6 +742,7 @@ export default function FlialPolygons() {
               className="btn"
               onClick={handleReset}
               disabled={!selectedId || saving}
+              title={!selectedId ? "Filial tanlanmagan" : undefined}
             >
               Qayta yuklash
             </button>
@@ -544,6 +750,7 @@ export default function FlialPolygons() {
               className="btn"
               onClick={handleClear}
               disabled={!selectedId || saving}
+              title={!selectedId ? "Filial tanlanmagan" : undefined}
             >
               Tozalash
             </button>
@@ -551,7 +758,13 @@ export default function FlialPolygons() {
               className="btn primary"
               onClick={handleSave}
               disabled={!selectedId || saving || !dirty}
-              title={!dirty ? "O‘zgarish yo‘q" : "Saqlash"}
+              title={
+                !selectedId
+                  ? "Filial tanlanmagan"
+                  : !dirty
+                  ? "O‘zgarish yo‘q"
+                  : "Saqlash"
+              }
             >
               {saving ? "Saqlanmoqda..." : "Saqlash"}
             </button>
@@ -564,8 +777,6 @@ export default function FlialPolygons() {
           <div className="state">Yuklanmoqda...</div>
         ) : err ? (
           <div className="state error">{String(err)}</div>
-        ) : !selectedId ? (
-          <div className="state">Filial tanlang</div>
         ) : (
           <div className="map-and-side">
             <div className="map-wrap">
@@ -584,27 +795,26 @@ export default function FlialPolygons() {
                 {/* Barcha filiallar poligonlari + markerlari (read-only) */}
                 <AllOverlays flials={flials} selectedId={selectedId} />
 
-                {/* Tanlangan filial: mavjud poligon preview + Geoman editor */}
-                {coords?.length > 0 && (
+                {/* Tanlangan bo‘lsa — preview va editor */}
+                {!!selectedId && coords?.length > 0 && (
                   <Polygon positions={coords} pathOptions={activeStyle} />
                 )}
-                <GeomanPolygon
-                  coords={coords}
-                  setCoords={(c) => {
-                    setCoords(c);
-                    setDirty(true);
-                  }}
-                  onDirtyChange={onDirtyChange}
-                  style={activeStyle}
-                  autoFit={false}
-                />
+                {!!selectedId && (
+                  <GeomanPolygon
+                    coords={coords}
+                    setCoords={setCoords}
+                    onDirtyChange={onDirtyChange}
+                    style={activeStyle}
+                    autoFit={false}
+                  />
+                )}
 
                 {/* Barchasiga qarab fit */}
                 <FitAllBounds flials={flials} selectedCoords={coords} />
 
                 {/* Xarita bosish orqali test */}
                 <MapClickTester
-                  enabled={clickTestEnabled}
+                  enabled={!!selectedId && clickTestEnabled}
                   onClick={handleMapClickTest}
                 />
 
@@ -615,16 +825,16 @@ export default function FlialPolygons() {
               </MapContainer>
 
               <div className="hint">
-                <b>Izoh:</b> Bir vaqtning o‘zida <u>bitta poligon</u> saqlanadi.
-                Yangi chizsangiz, eski o‘chadi. Xarita barcha filial poligonlari
-                va markerlarini qamrab turadi.
+                <b>Izoh:</b> Dastlab hech qaysi filial tanlanmagan — barcha
+                poligonlar ko‘rinadi. Filial tanlasangiz, faqat o‘sha poligon
+                tahrirlanadi va “Saqlash” faollashadi.
               </div>
             </div>
 
             <aside className="side">
-              {/* Rang boshqaruvi */}
+              {/* Rang boshqaruvi — faqat tanlangan uchun ma’no kasb etadi */}
               <div className="group">
-                <div className="group-title">Ko‘rinish (rang)</div>
+                <div className="group-title">Ko‘rinish (tanlangan poligon)</div>
                 <div className="row">
                   <label className="color-field">
                     <span>Chiziq/To‘ldirish rangi</span>
@@ -633,6 +843,7 @@ export default function FlialPolygons() {
                       value={polyColor}
                       onChange={(e) => setPolyColor(e.target.value)}
                       aria-label="Poligon rangi"
+                      disabled={!selectedId}
                     />
                     <code className="code">{polyColor}</code>
                   </label>
@@ -647,6 +858,7 @@ export default function FlialPolygons() {
                       step="0.5"
                       value={polyWeight}
                       onChange={(e) => setPolyWeight(Number(e.target.value))}
+                      disabled={!selectedId}
                     />
                   </label>
                   <label className="slider">
@@ -658,14 +870,23 @@ export default function FlialPolygons() {
                       step="0.01"
                       value={polyOpacity}
                       onChange={(e) => setPolyOpacity(Number(e.target.value))}
+                      disabled={!selectedId}
                     />
                   </label>
                 </div>
                 <div className="row">
-                  <button className="btn" onClick={handleSaveStyle}>
+                  <button
+                    className="btn"
+                    onClick={handleSaveStyle}
+                    disabled={!selectedId}
+                  >
                     Rangni saqlash
                   </button>
-                  <button className="btn" onClick={handleResetStyle}>
+                  <button
+                    className="btn"
+                    onClick={handleResetStyle}
+                    disabled={!selectedId}
+                  >
                     Defaultga qaytarish
                   </button>
                 </div>
@@ -682,6 +903,7 @@ export default function FlialPolygons() {
                       value={testLat}
                       onChange={(e) => setTestLat(e.target.value)}
                       placeholder="41.3..."
+                      disabled={!selectedId}
                     />
                   </label>
                   <label>
@@ -692,6 +914,7 @@ export default function FlialPolygons() {
                       value={testLng}
                       onChange={(e) => setTestLng(e.target.value)}
                       placeholder="69.2..."
+                      disabled={!selectedId}
                     />
                   </label>
                 </div>
@@ -699,15 +922,16 @@ export default function FlialPolygons() {
                   <button
                     className="btn"
                     onClick={runManualTest}
-                    disabled={coords.length < 3}
+                    disabled={!selectedId || coords.length < 3}
                   >
                     Tekshirish
                   </button>
                   <label className="chk">
                     <input
                       type="checkbox"
-                      checked={clickTestEnabled}
+                      checked={!!selectedId && clickTestEnabled}
                       onChange={(e) => setClickTestEnabled(e.target.checked)}
+                      disabled={!selectedId}
                     />
                     <span>Xaritaga bosib tekshirish</span>
                   </label>
@@ -736,20 +960,28 @@ export default function FlialPolygons() {
                 <div className="kv">
                   <div>Filial holati</div>
                   <div>
-                    <b>{selectedFlial?.is_active ? "Faol" : "Faol emas"}</b>
+                    <b>
+                      {selectedId
+                        ? selectedFlial?.is_active
+                          ? "Faol"
+                          : "Faol emas"
+                        : "—"}
+                    </b>
                   </div>
                 </div>
-                <div className="kv">
-                  <div>Rang</div>
-                  <div>
-                    <span
-                      className="color-dot"
-                      style={{ background: polyColor }}
-                      title={polyColor}
-                    />
-                    <code className="code">{polyColor}</code>
+                {!!selectedId && (
+                  <div className="kv">
+                    <div>Rang</div>
+                    <div>
+                      <span
+                        className="color-dot"
+                        style={{ background: polyColor }}
+                        title={polyColor}
+                      />
+                      <code className="code">{polyColor}</code>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </aside>
           </div>

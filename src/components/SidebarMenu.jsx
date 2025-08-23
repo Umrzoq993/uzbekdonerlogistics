@@ -9,6 +9,7 @@ import {
   PlusSquare,
   Archive,
   MapPinned,
+  Users,
 } from "lucide-react";
 import "./sidebar.scss";
 
@@ -209,6 +210,22 @@ export default function SidebarMenu({
           }
         >
           <span className="menu-label">Kategoriyalar</span>
+        </MenuItem>
+        {/*Foydalanuvchilar */}
+        <MenuItem
+          active={isActive("/users", { prefix: true })}
+          icon={iconWithState(<Users />, isActive("/users", { prefix: true }))}
+          title={collapsed ? "Foydalanuvchilar" : undefined}
+          component={
+            <NavLink
+              to="/users"
+              className={({ isActive }) =>
+                isActive ? "link-active" : undefined
+              }
+            />
+          }
+        >
+          <span className="menu-label">Foydalanuvchilar</span>
         </MenuItem>
       </Menu>
     </Sidebar>

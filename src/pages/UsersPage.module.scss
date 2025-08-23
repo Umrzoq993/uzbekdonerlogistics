@@ -1,0 +1,326 @@
+@use "../styles/variables" as *;
+@use "sass:color";
+
+/* Local tokens (LIGHT) */
+$border: #e5e7eb;
+$text: $dark; // from variables
+$surface: #ffffff;
+$muted: #6b7280;
+
+.wrap {
+  display: grid;
+  gap: 14px;
+  color: $text;
+  color-scheme: light; /* ← form controls ham light ko‘rinsin */
+  background: transparent; /* sahifaning o‘zi fon qo‘ymaydi */
+}
+
+/* ===== Header / Tools ===== */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.tools {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Search */
+.searchBox {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid $border;
+  border-radius: $radius;
+  background: $surface;
+  box-shadow: $shadow;
+
+  :global(svg) {
+    flex: 0 0 auto;
+    opacity: 0.65;
+  }
+
+  input {
+    border: 0;
+    outline: 0;
+    min-width: 260px;
+    background: transparent;
+    color: $text;
+
+    &::placeholder {
+      color: #9ca3af;
+    }
+  }
+
+  &:focus-within {
+    border-color: $primary;
+    box-shadow: 0 0 0 3px color.scale($primary, $lightness: 70%);
+  }
+}
+
+/* Per-page selector */
+.perpage {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  span {
+    font-size: 13px;
+    color: #333;
+  }
+  select {
+    min-width: 84px;
+    padding: 6px 8px;
+    border: 1px solid $border;
+    border-radius: 10px;
+    background: $surface;
+    outline: none;
+    color: $text;
+
+    &:focus {
+      border-color: $primary;
+    }
+  }
+}
+
+/* Refresh button (light-secondary) */
+.reloadBtn {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+
+  color: $primary;
+  background: color.scale($primary, $lightness: 88%);
+  border: 1px solid color.scale($primary, $lightness: 40%);
+  transition: background 0.15s ease, border-color 0.15s ease,
+    box-shadow 0.15s ease;
+
+  &:hover:not(:disabled) {
+    background: color.scale($primary, $lightness: 82%);
+    border-color: color.scale($primary, $lightness: 34%);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+  }
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+/* ===== Table Card ===== */
+.tableCard {
+  background: $surface;
+  border: 1px solid $border;
+  border-radius: $radius;
+  overflow: hidden;
+  box-shadow: $shadow;
+}
+
+.tableWrap {
+  height: 100%;
+  max-height: 100%;
+  overflow: auto;
+}
+
+/* Table */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th,
+  td {
+    padding: 12px 14px;
+    border-bottom: 1px solid #f0f0f0;
+    vertical-align: middle;
+    color: $text;
+  }
+
+  thead th {
+    background: #fafafa;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    text-align: left;
+    font-weight: 600;
+    color: #0f172a;
+  }
+
+  /* zebra + hover (LIGHT) */
+  tbody tr:nth-child(odd) td {
+    background: #fcfcff;
+  }
+  tbody tr:nth-child(even) td {
+    background: #ffffff;
+  }
+  tbody tr:hover td {
+    background: #f3f4f6;
+  }
+}
+
+.muted {
+  color: $muted;
+  text-align: center;
+  padding: 18px 0;
+}
+
+.actions {
+  text-align: right;
+  white-space: nowrap;
+}
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+  font-size: 12.5px;
+}
+
+/* Icon buttons */
+.iconBtn,
+.iconBtnDanger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 8px;
+  margin-left: 8px;
+  border-radius: 8px;
+  background: $surface;
+  color: #0f172a;
+  border: 1px solid $border;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease,
+    box-shadow 0.12s ease;
+
+  &:hover {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+  }
+  &:focus-visible {
+    outline: 2px solid color.scale($primary, $lightness: 20%);
+    outline-offset: 2px;
+  }
+}
+
+.iconBtnDanger {
+  color: #b91c1c;
+  border-color: #fecaca;
+  background: #fff5f5;
+
+  &:hover {
+    background: #fee2e2;
+    border-color: #fca5a5;
+    box-shadow: 0 1px 6px rgba(239, 68, 68, 0.12);
+  }
+}
+
+/* Footer / Pager */
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.pgText {
+  color: #333;
+}
+
+.pager {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pgCtrl {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 30px;
+  border-radius: 10px;
+  border: 1px solid $border;
+  background: $surface;
+  color: $text;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  &:hover:not(:disabled) {
+    background: #f3f4f6;
+  }
+}
+
+.jumpForm {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  span {
+    font-size: 13px;
+    color: #333;
+  }
+  input {
+    width: 72px;
+    padding: 6px 8px;
+    border: 1px solid $border;
+    border-radius: 10px;
+    outline: none;
+    color: $text;
+    background: $surface;
+
+    &:focus {
+      border-color: $primary;
+    }
+  }
+}
+
+.btn {
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid $border;
+  background: $surface;
+  color: #111;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover {
+    background: #f3f4f6;
+  }
+}
+
+.tools {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.addBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  border: 1px solid $primary;
+  background: $primary;
+  color: #fff;
+  font-weight: 600;
+
+  &:hover {
+    filter: brightness(0.95);
+  }
+}

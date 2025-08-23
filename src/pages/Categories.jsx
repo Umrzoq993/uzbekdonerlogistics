@@ -1,415 +1,384 @@
-import { useEffect, useMemo, useState } from "react";
-import {
-  fetchCategories,
-  createCategory,
-  updateCategory,
-  deleteCategory,
-  saveOrderBatch,
-} from "../services/categoriesService";
-import CategoryFormModal from "../components/CategoryFormModal";
-import {
-  Plus,
-  Pencil,
-  Trash2,
-  Search,
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
-  Info,
-  Save,
-} from "lucide-react";
-import "./category-crud.scss";
+// src/pages/Categories.jsx
+import React, {
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
+import { getCategories, getProductsByCategory } from "../api/categories";
+import ProductCard from "../components/products/ProductCard";
+import { Loader2, Search, Plus, Pencil, RefreshCw, X } from "lucide-react";
+import CategoryCreateModal from "../components/categories/CategoryCreateModal";
+import CategoryEditModal from "../components/categories/CategoryEditModal";
+import ProductCreateModal from "../components/products/ProductCreateModal";
+import ProductEditModal from "../components/products/ProductEditModal";
+import { toast } from "react-toastify";
+import "./category-browse.scss";
+import FallbackImage from "../components/ui/FallbackImage";
 
 export default function Categories() {
-  // Data
-  const [rows, setRows] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState("");
+  const [cats, setCats] = useState([]);
+  const [catQ, setCatQ] = useState("");
+  const deferredQ = useDeferredValue(catQ);
 
-  // UI filters
-  const [q, setQ] = useState("");
+  const [selectedId, setSelectedId] = useState(null);
 
-  // Pagination (client-side, chunki endpoint all qaytaradi)
-  const [limit, setLimit] = useState(10);
-  const [page, setPage] = useState(1); // 1-index
+  const [items, setItems] = useState([]);
+  const [busy, setBusy] = useState(false);
+  const [prodErr, setProdErr] = useState("");
+  const abortRef = useRef(null);
 
-  // Modals
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editing, setEditing] = useState(null); // row yoki null
+  // Kategoriya CRUD modallari
+  const [createOpen, setCreateOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
 
-  // Local edits for order fields (row_number/queue)
-  const [pendingOrderPatch, setPendingOrderPatch] = useState({}); // id -> {row_number, queue}
-  const [savingOrder, setSavingOrder] = useState(false);
+  // Mahsulot CRUD modallari
+  const [prodCreateOpen, setProdCreateOpen] = useState(false);
+  const [prodEdit, setProdEdit] = useState(null);
 
-  // Load
-  useEffect(() => {
-    (async () => {
-      setLoading(true);
-      setErr("");
+  const [isPending, startTransition] = useTransition();
+
+  const selectedCat = useMemo(
+    () => cats.find((c) => c.category_id === selectedId) || null,
+    [cats, selectedId]
+  );
+
+  const sortCats = (arr) =>
+    arr.sort(
+      (a, b) =>
+        (a.row_number || 0) - (b.row_number || 0) ||
+        (a.queue || 0) - (b.queue || 0) ||
+        String(a.name_uz || a.name_ru || "").localeCompare(
+          String(b.name_uz || b.name_ru || "")
+        )
+    );
+
+  // Kategoriyalarni yuklash
+  const loadCats = useCallback(
+    async (preserveId) => {
       try {
-        const list = await fetchCategories();
-        setRows(list);
+        const data = await getCategories();
+        sortCats(data);
+        setCats(data);
+        if (preserveId) {
+          const found = data.find((c) => c.category_id === preserveId);
+          setSelectedId(
+            found ? found.category_id : data[0]?.category_id ?? null
+          );
+        } else {
+          setSelectedId((prev) =>
+            prev && data.some((d) => d.category_id === prev)
+              ? prev
+              : data[0]?.category_id ?? null
+          );
+        }
       } catch (e) {
-        setErr(
-          e.response?.data?.detail ||
-            e.message ||
-            "Kategoriyalarni yuklab bo‘lmadi"
-        );
-        setRows([]);
-      } finally {
-        setLoading(false);
+        console.error(e);
+        toast.error("Kategoriyalarni yuklashda xatolik.");
       }
-    })();
+    },
+    [setCats]
+  );
+
+  useEffect(() => {
+    loadCats();
+  }, [loadCats]);
+
+  // Mahsulotlar
+  const fetchProducts = useCallback(async (catId, signal) => {
+    setProdErr("");
+    const list = await getProductsByCategory(catId, signal);
+    return Array.isArray(list) ? list : [];
   }, []);
 
-  // Derived: filtered + sorted
-  const filtered = useMemo(() => {
-    const term = q.trim().toLowerCase();
-    let list = rows;
-    if (term) {
-      list = rows.filter(
-        (r) =>
-          r.name_uz.toLowerCase().includes(term) ||
-          r.name_ru.toLowerCase().includes(term) ||
-          String(r.id).includes(term)
-      );
-    }
-    // Avval row_number, keyin queue, keyin id bo‘yicha
-    return [...list].sort((a, b) => {
-      if (a.row_number !== b.row_number) return a.row_number - b.row_number;
-      if (a.queue !== b.queue) return a.queue - b.queue;
-      return a.id - b.id;
-    });
-  }, [rows, q]);
-
-  // Paging
-  const pageCount = Math.max(1, Math.ceil(filtered.length / limit));
-  const current = useMemo(() => {
-    const start = (page - 1) * limit;
-    return filtered.slice(start, start + limit);
-  }, [filtered, page, limit]);
-
-  const goFirst = () => setPage(1);
-  const goLast = () => setPage(pageCount);
-  const prev = () => setPage((p) => Math.max(1, p - 1));
-  const next = () => setPage((p) => Math.min(pageCount, p + 1));
-
-  // CRUD handlers
-  const openCreate = () => {
-    setEditing(null);
-    setModalOpen(true);
-  };
-  const openEdit = (row) => {
-    setEditing(row);
-    setModalOpen(true);
-  };
-  const closeModal = () => setModalOpen(false);
-
-  const handleSubmit = async (vals) => {
-    if (editing?.id) {
-      const updated = await updateCategory(editing.id, vals);
-      setRows((prev) => prev.map((r) => (r.id === editing.id ? updated : r)));
-    } else {
-      const created = await createCategory(vals);
-      setRows((prev) => [created, ...prev]);
-      setPage(1);
-    }
-  };
-
-  const handleDelete = async (row) => {
-    if (
-      !window.confirm(
-        `"${row.name_uz}" kategoriyasini o‘chirishni tasdiqlaysizmi?`
-      )
-    )
+  useEffect(() => {
+    if (!selectedId) {
+      setItems([]);
       return;
-    await deleteCategory(row.id);
-    setRows((prev) => prev.filter((r) => r.id !== row.id));
-  };
-
-  // Inline order edit helpers
-  const onChangeOrderField = (id, key, val) => {
-    const v = Number(val);
-    setRows((prev) => prev.map((r) => (r.id === id ? { ...r, [key]: v } : r)));
-    setPendingOrderPatch((m) => ({
-      ...m,
-      [id]: { ...m[id], [key]: v },
-    }));
-  };
-
-  const saveOrder = async () => {
-    const changed = Object.entries(pendingOrderPatch).map(([id, partial]) => {
-      const row = rows.find((r) => String(r.id) === String(id));
-      return { id: row.id, row_number: row.row_number, queue: row.queue };
-    });
-    if (changed.length === 0) return;
-    setSavingOrder(true);
-    try {
-      await saveOrderBatch(changed);
-      setPendingOrderPatch({});
-    } catch (e) {
-      alert(
-        e.response?.data?.detail || e.message || "Tartibni saqlab bo‘lmadi"
-      );
-    } finally {
-      setSavingOrder(false);
     }
+    if (abortRef.current) abortRef.current.abort();
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
+
+    setBusy(true);
+    (async () => {
+      try {
+        const list = await fetchProducts(selectedId, ctrl.signal);
+        setItems(list);
+      } catch (e) {
+        if (e.name !== "CanceledError" && e.name !== "AbortError") {
+          console.error(e);
+          setItems([]);
+          setProdErr("Mahsulotlarni yuklashda xatolik.");
+        }
+      } finally {
+        setBusy(false);
+      }
+    })();
+
+    return () => ctrl.abort();
+  }, [selectedId, fetchProducts]);
+
+  // Qidiruv (chiplar)
+  const filteredCats = useMemo(() => {
+    const s = deferredQ.trim().toLowerCase();
+    if (!s) return cats;
+    return cats.filter(
+      (c) =>
+        String(c.name_uz || "")
+          .toLowerCase()
+          .includes(s) ||
+        String(c.name_ru || "")
+          .toLowerCase()
+          .includes(s)
+    );
+  }, [cats, deferredQ]);
+
+  // Klaviatura navigatsiyasi (chiplar)
+  const chipsWrapRef = useRef(null);
+  const onChipsKeyDown = (e) => {
+    const keys = [
+      "ArrowDown",
+      "ArrowUp",
+      "ArrowLeft",
+      "ArrowRight",
+      "Home",
+      "End",
+    ];
+    if (!keys.includes(e.key)) return;
+    e.preventDefault();
+    const buttons = chipsWrapRef.current?.querySelectorAll("button.chip");
+    if (!buttons || !buttons.length) return;
+
+    const idx = Array.from(buttons).findIndex(
+      (b) => Number(b.dataset.id) === Number(selectedId)
+    );
+    const move = (newIdx) => {
+      const btn = buttons[newIdx];
+      if (btn) {
+        const id = Number(btn.dataset.id);
+        startTransition(() => setSelectedId(id));
+        btn.focus();
+      }
+    };
+
+    if (e.key === "Home") move(0);
+    else if (e.key === "End") move(buttons.length - 1);
+    else if (e.key === "ArrowDown" || e.key === "ArrowRight")
+      move(Math.min(idx + 1, buttons.length - 1));
+    else if (e.key === "ArrowUp" || e.key === "ArrowLeft")
+      move(Math.max(idx - 1, 0));
+  };
+
+  // Mahsulotlarni qayta yuklash
+  const refetchProducts = () => {
+    if (!selectedId || busy) return;
+    setBusy(true);
+    setProdErr("");
+    if (abortRef.current) abortRef.current.abort();
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
+    (async () => {
+      try {
+        const list = await fetchProducts(selectedId, ctrl.signal);
+        setItems(list);
+      } catch (e) {
+        if (e.name !== "CanceledError" && e.name !== "AbortError") {
+          console.error(e);
+          setItems([]);
+          setProdErr("Mahsulotlarni yuklashda xatolik.");
+        }
+      } finally {
+        setBusy(false);
+      }
+    })();
   };
 
   return (
-    <div className="cat-page">
-      <div className="cat-header">
+    <div className="cb-page">
+      {/* header */}
+      <div className="cb-header">
         <h2>Kategoriyalar</h2>
         <div className="tools">
           <div className="search">
             <Search size={16} />
             <input
-              type="text"
-              placeholder="Qidirish (UZ/RU/ID)..."
-              value={q}
-              onChange={(e) => {
-                setQ(e.target.value);
-                setPage(1);
-              }}
+              placeholder="Kategoriya qidirish..."
+              value={catQ}
+              onChange={(e) => setCatQ(e.target.value)}
+              aria-label="Kategoriya qidirish"
             />
+            {catQ && (
+              <button
+                type="button"
+                aria-label="Tozalash"
+                className="clear"
+                onClick={() => setCatQ("")}
+              >
+                <X size={14} />
+              </button>
+            )}
           </div>
 
-          <div className="perpage">
-            <span>Ko‘rsatish:</span>
-            <select
-              value={limit}
-              onChange={(e) => {
-                setLimit(Number(e.target.value));
-                setPage(1);
-              }}
-            >
-              {[5, 10, 20, 50, 100].map((n) => (
-                <option key={n} value={n}>
-                  {n}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <button className="btn primary" onClick={openCreate}>
-            <Plus size={16} />
-            Yangi kategoriya
+          {/* Kategoriya yaratish / tahrirlash */}
+          <button
+            className="btn primary"
+            type="button"
+            onClick={() => setCreateOpen(true)}
+            title="Yangi kategoriya"
+          >
+            <Plus size={16} /> Yangi
           </button>
-        </div>
-      </div>
-
-      <div className="cat-body">
-        {loading ? (
-          <div className="state">Yuklanmoqda...</div>
-        ) : err ? (
-          <div className="state error">{String(err)}</div>
-        ) : (
-          <div className="table-wrap">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th style={{ width: 90 }}>ID</th>
-                  <th>Nomi (UZ)</th>
-                  <th>Nomi (RU)</th>
-                  <th>Photo</th>
-                  <th style={{ width: 120 }}>Row</th>
-                  <th style={{ width: 120 }}>Queue</th>
-                  <th style={{ width: 140, textAlign: "right" }}>Amallar</th>
-                </tr>
-              </thead>
-              <tbody>
-                {current.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="empty">
-                      Hech narsa topilmadi
-                    </td>
-                  </tr>
-                ) : (
-                  current.map((r) => (
-                    <tr key={r.id}>
-                      <td>#{r.id}</td>
-                      <td>{r.name_uz}</td>
-                      <td>{r.name_ru}</td>
-                      <td className="photo-cell">
-                        {r.photo ? (
-                          <div className="photo-wrap">
-                            <img src={r.photo} alt="thumb" className="thumb" />
-                            <div className="photo-tools">
-                              <button
-                                className="mini-link"
-                                onClick={() =>
-                                  window.open(
-                                    r.photo,
-                                    "_blank",
-                                    "noopener,noreferrer"
-                                  )
-                                }
-                              >
-                                ochish
-                              </button>
-                              <button
-                                className="mini-link"
-                                onClick={async () => {
-                                  try {
-                                    await navigator.clipboard.writeText(
-                                      r.photo
-                                    );
-                                    alert("Photo URL nusxalandi!");
-                                  } catch {}
-                                }}
-                              >
-                                nusxala
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          "—"
-                        )}
-                      </td>
-                      <td>
-                        <input
-                          className="num"
-                          type="number"
-                          value={r.row_number}
-                          onChange={(e) =>
-                            onChangeOrderField(
-                              r.id,
-                              "row_number",
-                              e.target.value
-                            )
-                          }
-                        />
-                      </td>
-                      <td>
-                        <input
-                          className="num"
-                          type="number"
-                          value={r.queue}
-                          onChange={(e) =>
-                            onChangeOrderField(r.id, "queue", e.target.value)
-                          }
-                        />
-                      </td>
-                      <td className="actions">
-                        <button
-                          className="icon-btn"
-                          title="Tahrirlash"
-                          onClick={() => openEdit(r)}
-                        >
-                          <Pencil size={16} />
-                        </button>
-                        <button
-                          className="icon-btn danger"
-                          title="O‘chirish"
-                          onClick={() => handleDelete(r)}
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      <div className="cat-footer">
-        <div className="left">
           <button
             className="btn"
-            disabled={
-              savingOrder || Object.keys(pendingOrderPatch).length === 0
-            }
-            onClick={saveOrder}
-            title={
-              Object.keys(pendingOrderPatch).length
-                ? `${
-                    Object.keys(pendingOrderPatch).length
-                  } ta o‘zgarish saqlanadi`
-                : "O‘zgarish yo‘q"
-            }
+            type="button"
+            onClick={() => setEditOpen(true)}
+            disabled={!selectedId}
+            title="Tanlangan kategoriyani tahrirlash"
           >
-            <Save size={16} />
-            {savingOrder ? "Saqlanmoqda..." : "Tartibni saqlash"}
+            <Pencil size={16} /> Tahrirlash
           </button>
-        </div>
-
-        <div className="pager">
-          <button
-            className="pg-ctrl"
-            onClick={goFirst}
-            disabled={page <= 1}
-            title="Birinchi"
-          >
-            <ChevronsLeft size={16} />
-          </button>
-          <button
-            className="pg-ctrl"
-            onClick={prev}
-            disabled={page <= 1}
-            title="Oldingi"
-          >
-            <ChevronLeft size={16} />
-          </button>
-
-          <span className="pg-text">
-            Sahifa <b>{page}</b> / {pageCount}
-          </span>
-
-          <button
-            className="pg-ctrl"
-            onClick={next}
-            disabled={page >= pageCount}
-            title="Keyingi"
-          >
-            <ChevronRight size={16} />
-          </button>
-          <button
-            className="pg-ctrl"
-            onClick={goLast}
-            disabled={page >= pageCount}
-            title="Oxirgi"
-          >
-            <ChevronsRight size={16} />
-          </button>
-
-          {/* Jump-to-page */}
-          <form
-            className="jump-form"
-            onSubmit={(e) => {
-              e.preventDefault();
-              const form = e.currentTarget;
-              const inp = form.querySelector("input");
-              const n = Math.max(
-                1,
-                Math.min(pageCount, Number(inp.value) || 1)
-              );
-              setPage(n);
-              inp.value = "";
-            }}
-          >
-            <span>Sakrash:</span>
-            <input
-              type="number"
-              min={1}
-              max={pageCount}
-              placeholder={`${page}`}
-            />
-            <button className="btn" type="submit">
-              O‘tish
-            </button>
-          </form>
         </div>
       </div>
 
-      <CategoryFormModal
-        open={modalOpen}
-        onClose={closeModal}
-        initial={editing}
-        onSubmit={handleSubmit}
+      {/* body */}
+      <div className="cb-body">
+        <div
+          className="cat-chips"
+          role="tablist"
+          aria-label="Kategoriyalar"
+          ref={chipsWrapRef}
+          onKeyDown={onChipsKeyDown}
+        >
+          {filteredCats.map((c) => {
+            const active = c.category_id === selectedId;
+            return (
+              <button
+                key={c.category_id}
+                data-id={c.category_id}
+                role="tab"
+                aria-selected={active}
+                className={`chip ${active ? "active" : ""}`}
+                onClick={() =>
+                  startTransition(() => setSelectedId(c.category_id))
+                }
+                title={c.name_uz || c.name_ru}
+              >
+                <span className="thumb">
+                  <FallbackImage
+                    src={c.photo?._url}
+                    alt={c.name_uz || c.name_ru || "Kategoriya"}
+                    loading="lazy"
+                  />
+                </span>
+                <span className="label">{c.name_uz || c.name_ru}</span>
+              </button>
+            );
+          })}
+          {!filteredCats.length && (
+            <div className="muted">Kategoriya topilmadi.</div>
+          )}
+        </div>
+
+        <div className="prod-pane">
+          <div className="pane-head" aria-live="polite">
+            <div className="title">
+              {selectedCat?.name_uz || selectedCat?.name_ru || "—"}
+              <span className="count-badge">{items.length}</span>
+            </div>
+
+            <div className="head-tools">
+              <button
+                type="button"
+                className="btn primary"
+                onClick={() => setProdCreateOpen(true)}
+                disabled={!selectedId}
+                title="Yangi mahsulot qo‘shish"
+              >
+                <Plus size={16} />
+                Yangi mahsulot
+              </button>
+
+              <button
+                type="button"
+                className="btn ghost"
+                onClick={refetchProducts}
+                disabled={!selectedId || busy}
+                title="Mahsulotlarni yangilash"
+              >
+                <RefreshCw size={16} />
+                Yangilash
+              </button>
+
+              {busy && (
+                <div className="loading">
+                  <Loader2 className="spin" size={16} /> Yuklanmoqda…
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Scroll konteyner */}
+          <div className="pane-scroll">
+            <div className="grid">
+              {busy ? (
+                Array.from({ length: 8 }).map((_, i) => (
+                  <div key={`skel-${i}`} className="p-skeleton">
+                    <div className="skel-img" />
+                    <div className="skel-line w-80" />
+                    <div className="skel-line w-60" />
+                  </div>
+                ))
+              ) : items.length ? (
+                items.map((p, i) => (
+                  <ProductCard
+                    key={p.product_id || p.id || i}
+                    item={p}
+                    onEdit={() => setProdEdit(p)}
+                  />
+                ))
+              ) : (
+                <div className="muted">Mahsulot topilmadi.</div>
+              )}
+              {prodErr && !busy && <div className="state error">{prodErr}</div>}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Kategoriya CREATE */}
+      <CategoryCreateModal
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onSaved={() => loadCats(selectedId)}
+      />
+
+      {/* Kategoriya EDIT */}
+      <CategoryEditModal
+        open={editOpen}
+        categoryId={selectedId}
+        onClose={() => setEditOpen(false)}
+        onSaved={() => loadCats(selectedId)}
+      />
+
+      {/* Mahsulot CREATE */}
+      <ProductCreateModal
+        open={prodCreateOpen}
+        categoryId={selectedId}
+        onClose={() => setProdCreateOpen(false)}
+        onSaved={refetchProducts}
+      />
+
+      {/* Mahsulot EDIT */}
+      <ProductEditModal
+        open={!!prodEdit}
+        product={prodEdit}
+        catOptions={cats}
+        onClose={() => setProdEdit(null)}
+        onSaved={refetchProducts}
       />
     </div>
   );
