@@ -1,8 +1,9 @@
+@use "sass:meta";
 @use "../styles/variables" as *;
 
 // -------- CSS variables (fallbacks agar $primary yo'q bo'lsa) ----------
 :root {
-  --odm-primary: #{if(global-variable-exists(primary), $primary, #6366f1)};
+  --odm-primary: #{if(meta.global-variable-exists(primary), $primary, #6366f1)};
   --odm-text: #0f172a; /* slate-900 */
   --odm-subtle: #6b7280; /* gray-500 */
   --odm-border: #e5e7eb; /* gray-200 */
