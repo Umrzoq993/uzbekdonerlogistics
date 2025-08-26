@@ -74,7 +74,7 @@ export async function updateProduct({
   const fd = new FormData();
   if (imageFile) fd.append("image", imageFile);
 
-  const { data } = await api.post("/product/update", fd, {
+  const { data } = await api.put("/product/update", fd, {
     params,
     headers: { "Content-Type": "multipart/form-data" },
   });
