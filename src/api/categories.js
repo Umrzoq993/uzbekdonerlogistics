@@ -43,7 +43,7 @@ export async function updateCategory({
   if (row_number !== undefined && row_number !== null && row_number !== "")
     params.row_number = Number(row_number);
 
-  const { data } = await api.post("/category/update", null, { params });
+  const { data } = await api.put("/category/update", null, { params });
   return data;
 }
 
