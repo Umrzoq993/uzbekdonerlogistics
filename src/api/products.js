@@ -30,7 +30,7 @@ export async function createProduct({
   const fd = new FormData();
   fd.append("image", imageFile);
 
-  const { data } = await api.post("/product/new", fd, {
+  const { data } = await api.put("/product/new", fd, {
     params,
     headers: { "Content-Type": "multipart/form-data" },
   });
