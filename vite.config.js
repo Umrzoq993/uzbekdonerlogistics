@@ -16,7 +16,22 @@ export default defineConfig(({ mode }) => {
       .filter(Boolean);
 
     return {
-      plugins: [react()],
+      plugins: [
+        react(),
+        {
+          name: "no-cache-optimized-deps",
+          configureServer(server) {
+            server.middlewares.use((req, res, next) => {
+              if (req.url && req.url.startsWith("/node_modules/.vite/deps/")) {
+                res.setHeader("Cache-Control", "no-store");
+                res.setHeader("Pragma", "no-cache");
+                res.setHeader("Expires", "0");
+              }
+              next();
+            });
+          },
+        },
+      ],
       optimizeDeps: {
         include: ["dayjs", "apexcharts", "react-apexcharts"],
         force: true, // outdated optimize dep muammosini hal qilish uchun majburan qayta bundle
