@@ -18,8 +18,10 @@ export default defineConfig(({ mode }) => {
     return {
       plugins: [react()],
       optimizeDeps: {
-        include: ["apexcharts", "react-apexcharts"],
-        force: true, // outdated optimize dep muammosini hal qilish uchun majburan qayta bundle
+        // ApexCharts katta bundle va tez-tez restartlarda hash o'zgarishi 504 keltirishi mumkin.
+        // Exclude qilib native ESM orqali bevosita serve qilamiz.
+        exclude: ["apexcharts", "react-apexcharts"],
+        force: false, // force ni o'chirdik: keraksiz qayta hash almashtirishni kamaytiradi
       },
       build: {
         rollupOptions: {
@@ -59,7 +61,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
-    optimizeDeps: { include: ["apexcharts", "react-apexcharts"], force: true },
+  optimizeDeps: { include: ["apexcharts", "react-apexcharts"], force: false },
     build: {
       rollupOptions: {
         output: {
