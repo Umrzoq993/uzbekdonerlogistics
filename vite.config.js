@@ -61,7 +61,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
-  optimizeDeps: { include: ["apexcharts", "react-apexcharts"], force: false },
+    optimizeDeps: { include: ["apexcharts", "react-apexcharts"], force: false },
     build: {
       rollupOptions: {
         output: {
