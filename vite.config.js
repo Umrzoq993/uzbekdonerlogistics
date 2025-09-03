@@ -31,12 +31,25 @@ export default defineConfig(({ mode }) => {
         },
       },
       server: {
-        host: "127.0.0.1",
+        // 127.0.0.1 tashqi reverse proxy (nginx) dan ko'rinmay qolishi mumkin.
+        // host: true -> 0.0.0.0 ni tinglaydi va nginx forward qilganda 504 chiqmasligiga yordam beradi.
+        host: true,
         port: 5173,
         strictPort: true,
         hmr: { protocol: "wss", host: HMR_HOST, clientPort: HMR_CLIENT_PORT },
         allowedHosts: ALLOWED,
         origin: `https://${HMR_HOST}`,
+        // Optimized dep fayllarini nginx / CDN keshlab qolib "Outdated Optimize Dep" bermasligi uchun
+        // dev rejimida cache ni o'chirib qo'yamiz.
+        headers: {
+          "Cache-Control": "no-store",
+        },
+        // Ba'zi VPS / konteynerlarda fayl tizimi eventlari ishlamasligi mumkin.
+        // Bunday holatda polling yoqilishi eski dep hash / partial hot reload muammolarini kamaytiradi.
+        watch: {
+          usePolling: process.env.VITE_POLL ? true : false,
+          interval: 500,
+        },
       },
     };
   }
