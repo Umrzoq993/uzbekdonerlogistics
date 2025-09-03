@@ -16,32 +16,15 @@ export default defineConfig(({ mode }) => {
       .filter(Boolean);
 
     return {
-      plugins: [
-        react(),
-        {
-          name: "no-cache-optimized-deps",
-          configureServer(server) {
-            server.middlewares.use((req, res, next) => {
-              if (req.url && req.url.startsWith("/node_modules/.vite/deps/")) {
-                res.setHeader("Cache-Control", "no-store");
-                res.setHeader("Pragma", "no-cache");
-                res.setHeader("Expires", "0");
-              }
-              next();
-            });
-          },
-        },
-      ],
+      plugins: [react()],
       optimizeDeps: {
-        include: ["dayjs", "apexcharts", "react-apexcharts"],
+        include: ["apexcharts", "react-apexcharts"],
         force: true, // outdated optimize dep muammosini hal qilish uchun majburan qayta bundle
       },
       build: {
         rollupOptions: {
           output: {
-            manualChunks: {
-              charts: ["dayjs", "apexcharts", "react-apexcharts"],
-            },
+            manualChunks: { charts: ["apexcharts", "react-apexcharts"] },
           },
         },
       },
@@ -76,16 +59,11 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
-    optimizeDeps: {
-      include: ["dayjs", "apexcharts", "react-apexcharts"],
-      force: true,
-    },
+    optimizeDeps: { include: ["apexcharts", "react-apexcharts"], force: true },
     build: {
       rollupOptions: {
         output: {
-          manualChunks: {
-            charts: ["dayjs", "apexcharts", "react-apexcharts"],
-          },
+          manualChunks: { charts: ["apexcharts", "react-apexcharts"] },
         },
       },
     },

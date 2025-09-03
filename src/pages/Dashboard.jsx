@@ -1,5 +1,15 @@
 import React, { useEffect, useMemo, useState, Suspense, lazy } from "react";
-import dayjs from "dayjs";
+// dayjs olib tashlandi; native util funksiyalar ishlatiladi
+import {
+  formatDate,
+  todayStr,
+  subtractDays,
+  diffDays,
+  startOfMonth,
+  endOfMonth,
+  previousMonth,
+  parseDate,
+} from "../utils/date";
 // Lazy load (bundle kichraytirish uchun)
 const ReactApexChart = lazy(() => import("react-apexcharts"));
 import { Activity, Bot, Headset, CheckCircle2, XCircle } from "lucide-react";
@@ -10,8 +20,9 @@ import {
 import "./dashboard.scss";
 
 function defaultRange() {
-  const finish = dayjs().format("YYYY-MM-DD");
-  const start = dayjs().subtract(29, "day").format("YYYY-MM-DD");
+  const today = parseDate(todayStr());
+  const finish = formatDate(today);
+  const start = formatDate(subtractDays(today, 29));
   return { start, finish };
 }
 
@@ -45,24 +56,24 @@ const Dashboard = () => {
   }, []);
 
   function setRange(type) {
-    const today = dayjs();
+    const now = parseDate(todayStr());
     if (type === "today") {
-      const d = today.format("YYYY-MM-DD");
+      const d = formatDate(now);
       setStartDate(d);
       setFinishDate(d);
     } else if (type === "7d") {
-      setStartDate(today.subtract(6, "day").format("YYYY-MM-DD"));
-      setFinishDate(today.format("YYYY-MM-DD"));
+      setStartDate(formatDate(subtractDays(now, 6)));
+      setFinishDate(formatDate(now));
     } else if (type === "30d") {
-      setStartDate(today.subtract(29, "day").format("YYYY-MM-DD"));
-      setFinishDate(today.format("YYYY-MM-DD"));
+      setStartDate(formatDate(subtractDays(now, 29)));
+      setFinishDate(formatDate(now));
     } else if (type === "thisMonth") {
-      setStartDate(today.startOf("month").format("YYYY-MM-DD"));
-      setFinishDate(today.format("YYYY-MM-DD"));
+      setStartDate(formatDate(startOfMonth(now)));
+      setFinishDate(formatDate(now));
     } else if (type === "lastMonth") {
-      const lm = today.subtract(1, "month");
-      setStartDate(lm.startOf("month").format("YYYY-MM-DD"));
-      setFinishDate(lm.endOf("month").format("YYYY-MM-DD"));
+      const pm = previousMonth(now); // first day of previous month
+      setStartDate(formatDate(pm));
+      setFinishDate(formatDate(endOfMonth(pm)));
     }
   }
 
@@ -104,7 +115,7 @@ const Dashboard = () => {
   const totalOrders = summary.received + summary.rejected;
   const acceptancePercent =
     totalOrders === 0 ? 0 : Math.round((summary.received / totalOrders) * 100);
-  const rangeDays = dayjs(finishDate).diff(dayjs(startDate), "day") + 1;
+  const rangeDays = diffDays(startDate, finishDate) + 1;
 
   const sourceChart = useMemo(() => {
     const categories = rows.map((r) => r.date);
@@ -205,7 +216,7 @@ const Dashboard = () => {
               type="date"
               value={finishDate}
               min={startDate}
-              max={dayjs().format("YYYY-MM-DD")}
+              max={todayStr()}
               onChange={(e) => setFinishDate(e.target.value)}
             />
           </div>
