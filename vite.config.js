@@ -17,6 +17,19 @@ export default defineConfig(({ mode }) => {
 
     return {
       plugins: [react()],
+      optimizeDeps: {
+        include: ["dayjs", "apexcharts", "react-apexcharts"],
+        force: true, // outdated optimize dep muammosini hal qilish uchun majburan qayta bundle
+      },
+      build: {
+        rollupOptions: {
+          output: {
+            manualChunks: {
+              charts: ["dayjs", "apexcharts", "react-apexcharts"],
+            },
+          },
+        },
+      },
       server: {
         host: "127.0.0.1",
         port: 5173,
@@ -35,6 +48,19 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
+    optimizeDeps: {
+      include: ["dayjs", "apexcharts", "react-apexcharts"],
+      force: true,
+    },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            charts: ["dayjs", "apexcharts", "react-apexcharts"],
+          },
+        },
+      },
+    },
     server: {
       host: true,
       port: 5173,
