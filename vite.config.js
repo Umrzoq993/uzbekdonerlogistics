@@ -4,82 +4,67 @@ import react from "@vitejs/plugin-react";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
-  const profile = process.env.DEV_PROFILE || "local"; // serverda systemd -> DEV_PROFILE=server
-  const isServerDev = mode === "development" && profile === "server";
 
-  if (isServerDev) {
-    const HMR_HOST = env.HMR_HOST || "logistika.adminsite.uz";
-    const HMR_CLIENT_PORT = Number(env.HMR_CLIENT_PORT || 443);
-    const ALLOWED = (env.ALLOWED_HOSTS || ".adminsite.uz")
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
+  // Flag’lar (env orqali moslashuvchan):
+  const PROFILE = process.env.DEV_PROFILE || env.DEV_PROFILE || "local"; // local | server
+  const IS_DEV = mode === "development";
+  const IS_SERVER = PROFILE === "server";
+  const HMR_HOST =
+    env.HMR_HOST || (IS_SERVER ? "logistika.adminsite.uz" : undefined);
+  const HMR_PROTOCOL = env.HMR_PROTOCOL || (IS_SERVER ? "wss" : "ws");
+  const HMR_CLIENT_PORT = env.HMR_CLIENT_PORT
+    ? Number(env.HMR_CLIENT_PORT)
+    : IS_SERVER && HMR_PROTOCOL === "wss"
+    ? 443
+    : undefined;
 
-    return {
-      plugins: [react()],
-      optimizeDeps: {
-        // ApexCharts katta bundle va tez-tez restartlarda hash o'zgarishi 504 keltirishi mumkin.
-        // Exclude qilib native ESM orqali bevosita serve qilamiz.
-        exclude: ["apexcharts", "react-apexcharts"],
-        force: false, // force ni o'chirdik: keraksiz qayta hash almashtirishni kamaytiradi
-      },
-      build: {
-        rollupOptions: {
-          output: {
-            manualChunks: { charts: ["apexcharts", "react-apexcharts"] },
-          },
-        },
-      },
-      server: {
-        // 127.0.0.1 tashqi reverse proxy (nginx) dan ko'rinmay qolishi mumkin.
-        // host: true -> 0.0.0.0 ni tinglaydi va nginx forward qilganda 504 chiqmasligiga yordam beradi.
-        host: true,
-        port: 5173,
-        strictPort: true,
-        hmr: { protocol: "wss", host: HMR_HOST, clientPort: HMR_CLIENT_PORT },
-        allowedHosts: ALLOWED,
-        origin: `https://${HMR_HOST}`,
-        // Optimized dep fayllarini nginx / CDN keshlab qolib "Outdated Optimize Dep" bermasligi uchun
-        // dev rejimida cache ni o'chirib qo'yamiz.
-        headers: {
-          "Cache-Control": "no-store",
-        },
-        // Ba'zi VPS / konteynerlarda fayl tizimi eventlari ishlamasligi mumkin.
-        // Bunday holatda polling yoqilishi eski dep hash / partial hot reload muammolarini kamaytiradi.
-        watch: {
-          usePolling: process.env.VITE_POLL ? true : false,
-          interval: 500,
-        },
-      },
-    };
-  }
+  // Apex optimize strategiyasi: server dev muammolarini kamaytirish uchun default exclude.
+  const APEX_OPTIMIZE = env.VITE_APEX_OPTIMIZE === "true"; // ixtiyoriy ravishda yoqish
+  const apexInclude = ["apexcharts", "react-apexcharts"];
 
-  const LOCAL_ALLOWED = (env.ALLOWED_HOSTS || env.NGROK_HOST || "")
+  const allowedHosts = (
+    env.ALLOWED_HOSTS ||
+    env.NGROK_HOST ||
+    (IS_SERVER ? ".adminsite.uz" : "")
+  )
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
 
   return {
     plugins: [react()],
-    optimizeDeps: { include: ["apexcharts", "react-apexcharts"], force: false },
+    optimizeDeps: APEX_OPTIMIZE
+      ? { include: apexInclude, force: false }
+      : { exclude: apexInclude, force: false },
     build: {
       rollupOptions: {
         output: {
-          manualChunks: { charts: ["apexcharts", "react-apexcharts"] },
+          manualChunks: { charts: apexInclude },
         },
       },
     },
     server: {
-      host: true,
-      port: 5173,
+      host: true, // 0.0.0.0 lokal ham server ham
+      port: Number(env.VITE_PORT || 5173),
+      strictPort: true,
       hmr: {
-        protocol: env.HMR_PROTOCOL || "ws", // ngrok bo'lsa: wss
-        host: env.HMR_HOST || undefined, // ngrok domeni
-        clientPort: env.HMR_CLIENT_PORT
-          ? Number(env.HMR_CLIENT_PORT)
-          : undefined, // ngrok: 443
+        protocol: HMR_PROTOCOL,
+        host: HMR_HOST,
+        clientPort: HMR_CLIENT_PORT,
       },
-      allowedHosts: LOCAL_ALLOWED.length ? LOCAL_ALLOWED : undefined,
+      allowedHosts: allowedHosts.length ? allowedHosts : undefined,
+      origin: HMR_HOST
+        ? `${HMR_PROTOCOL === "wss" ? "https" : "http"}://${HMR_HOST}`
+        : undefined,
+      headers: IS_DEV
+        ? {
+            "Cache-Control": "no-store",
+          }
+        : undefined,
+      watch: {
+        usePolling: Boolean(process.env.VITE_POLL),
+        interval: 500,
+      },
     },
   };
 });
