@@ -31,11 +31,15 @@ export default defineConfig(({ mode }) => {
     .map((s) => s.trim())
     .filter(Boolean);
 
+  const optimizeConfig = APEX_OPTIMIZE
+    ? { include: apexInclude, force: false }
+    : IS_SERVER
+    ? { disabled: true } // server dev: umuman pre-bundle qilmaymiz, .vite/deps yo'qoladi
+    : { exclude: apexInclude, force: false };
+
   return {
     plugins: [react()],
-    optimizeDeps: APEX_OPTIMIZE
-      ? { include: apexInclude, force: false }
-      : { exclude: apexInclude, force: false },
+    optimizeDeps: optimizeConfig,
     build: {
       rollupOptions: {
         output: {
