@@ -1,5 +1,6 @@
 // src/components/users/ConfirmDialog.jsx
 import Modal from "../ui/Modal";
+import "../../styles/_buttons.scss";
 import { deleteUser } from "../../api/users";
 import { useState } from "react";
 
@@ -37,35 +38,6 @@ export default function ConfirmDialog({ open, user, onClose, onDeleted }) {
           >
             Ha, o‘chir
           </button>
-          <style jsx>{`
-            .btn {
-              padding: 8px 12px;
-              border-radius: 10px;
-              font-weight: 600;
-              border: 1px solid #e5e7eb;
-              background: #fff;
-              color: #111827;
-              cursor: pointer;
-            }
-            .btn:hover {
-              background: #f3f4f6;
-            }
-            .btn:disabled {
-              opacity: 0.6;
-              cursor: not-allowed;
-            }
-            .btn.ghost {
-              background: #fff;
-            }
-            .btn.danger {
-              background: #ef4444;
-              border-color: #ef4444;
-              color: #fff;
-            }
-            .btn.danger:hover {
-              filter: brightness(0.96);
-            }
-          `}</style>
         </>
       }
     >

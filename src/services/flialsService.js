@@ -17,7 +17,9 @@ function getOverrides() {
 function setOverrides(obj) {
   try {
     localStorage.setItem(LS_KEY, JSON.stringify(obj || {}));
-  } catch {}
+  } catch {
+    /* ignore */
+  }
 }
 
 /** GET /flials */

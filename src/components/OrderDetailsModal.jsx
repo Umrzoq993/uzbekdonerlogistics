@@ -141,7 +141,8 @@ export default function OrderDetailsModal({
 
   const addr = order?.address || {};
   const st = order?.status || {};
-  const pay = order?.payment || {};
+  // payment info (unused for now)
+  // const pay = order?.payment || {};
   const dt = order?.datetime || {};
   const items = Array.isArray(order?.details) ? order.details : [];
 

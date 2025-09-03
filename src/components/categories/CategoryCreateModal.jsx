@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { createCategory } from "../../api/categories";
 import Modal from "../ui/Modal";
+import "../../styles/_buttons.scss";
+import "./category-create-modal.scss";
 import { toast } from "react-toastify";
 
 export default function CategoryCreateModal({ open, onClose, onSaved }) {
@@ -59,32 +61,6 @@ export default function CategoryCreateModal({ open, onClose, onSaved }) {
           >
             Yaratish
           </button>
-          <style jsx>{`
-            .btn {
-              padding: 8px 12px;
-              border-radius: 10px;
-              font-weight: 600;
-              border: 1px solid #e5e7eb;
-              background: #fff;
-              color: #111827;
-              cursor: pointer;
-            }
-            .btn:hover {
-              background: #f3f4f6;
-            }
-            .btn:disabled {
-              opacity: 0.6;
-              cursor: not-allowed;
-            }
-            .btn.primary {
-              background: #ff6b00;
-              border-color: #ff6b00;
-              color: #fff;
-            }
-            .btn.primary:hover {
-              filter: brightness(0.95);
-            }
-          `}</style>
         </>
       }
     >
@@ -118,34 +94,7 @@ export default function CategoryCreateModal({ open, onClose, onSaved }) {
         </label>
       </form>
 
-      <style jsx>{`
-        .form-grid {
-          display: grid;
-          gap: 12px;
-        }
-        label {
-          display: grid;
-          gap: 6px;
-        }
-        label > span {
-          font-size: 13px;
-          color: #334155;
-        }
-        input[type="text"],
-        input[type="file"] {
-          border: 1px solid #e5e7eb;
-          border-radius: 10px;
-          padding: 10px 12px;
-          outline: none;
-          background: #fff;
-          color: #111827;
-        }
-        input[type="text"]:focus,
-        input[type="file"]:focus {
-          border-color: #ff6b00;
-          box-shadow: 0 0 0 3px rgba(255, 107, 0, 0.2);
-        }
-      `}</style>
+      {/* styles moved to category-create-modal.scss */}
     </Modal>
   );
 }

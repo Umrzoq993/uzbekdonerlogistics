@@ -1,6 +1,8 @@
 // src/components/users/UserFormModal.jsx
 import { useEffect, useState } from "react";
 import Modal from "../ui/Modal";
+import "../../styles/_buttons.scss";
+import "./user-form-modal.scss";
 import { createUser, getUserById, updateUser } from "../../api/users";
 
 /**
@@ -126,35 +128,6 @@ export default function UserFormModal({
           >
             {isCreate ? "Yaratish" : "Saqlash"}
           </button>
-          <style jsx>{`
-            .btn {
-              padding: 8px 12px;
-              border-radius: 10px;
-              font-weight: 600;
-              border: 1px solid #e5e7eb;
-              background: #fff;
-              color: #111827;
-              cursor: pointer;
-            }
-            .btn:hover {
-              background: #f3f4f6;
-            }
-            .btn:disabled {
-              opacity: 0.6;
-              cursor: not-allowed;
-            }
-            .btn.primary {
-              background: #ff6b00;
-              border-color: #ff6b00;
-              color: #fff;
-            }
-            .btn.primary:hover {
-              filter: brightness(0.95);
-            }
-            .btn.ghost {
-              background: #fff;
-            }
-          `}</style>
         </>
       }
     >
@@ -219,37 +192,7 @@ export default function UserFormModal({
         </form>
       )}
 
-      <style jsx>{`
-        .form-grid {
-          display: grid;
-          gap: 12px;
-          margin-bottom: 8px;
-        }
-        label {
-          display: grid;
-          gap: 6px;
-        }
-        label > span {
-          font-size: 13px;
-          color: #334155;
-        }
-        input {
-          border: 1px solid #e5e7eb;
-          border-radius: 10px;
-          padding: 10px 12px;
-          outline: none;
-          background: #fff;
-          color: #111827;
-        }
-        input:focus {
-          border-color: #ff6b00;
-          box-shadow: 0 0 0 3px rgba(255, 107, 0, 0.2);
-        }
-        input[disabled] {
-          background: #f8fafc;
-          color: #6b7280;
-        }
-      `}</style>
+      {/* styles moved to user-form-modal.scss */}
     </Modal>
   );
 }

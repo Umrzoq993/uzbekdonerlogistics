@@ -1,5 +1,13 @@
 // src/context/AuthContext.jsx
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+/* eslint-disable react-refresh/only-export-components */
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  useCallback,
+} from "react";
 import api, { ACCESS_TOKEN_KEY } from "../api/axiosConfig";
 
 const AuthCtx = createContext(null);
@@ -32,24 +40,17 @@ export function AuthProvider({ children }) {
   const isAuthed = !!token;
 
   // localStorage + state sinxron
-  const setToken = (t) => {
+  const setToken = useCallback((t) => {
     if (t) localStorage.setItem(ACCESS_TOKEN_KEY, t);
     else localStorage.removeItem(ACCESS_TOKEN_KEY);
     setTokenState(t || "");
-  };
+  }, []);
 
-  const logout = () => setToken("");
+  const logout = useCallback(() => setToken(""), [setToken]);
 
   const value = useMemo(
-    () => ({
-      // states
-      ready,
-      isAuthed,
-      // actions
-      setToken,
-      logout,
-    }),
-    [ready, isAuthed]
+    () => ({ ready, isAuthed, setToken, logout }),
+    [ready, isAuthed, setToken, logout]
   );
 
   return <AuthCtx.Provider value={value}>{children}</AuthCtx.Provider>;

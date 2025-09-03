@@ -1,0 +1,72 @@
+@use "./variables" as *;
+
+// Reusable button styles extracted from former <style jsx> blocks
+.u-btn,
+.btn {
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-weight: 600;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  color: #111827;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 1.2;
+  font-family: inherit;
+  transition: background 0.15s ease, filter 0.15s ease, box-shadow 0.15s ease;
+}
+.u-btn:hover,
+.btn:hover {
+  background: #f3f4f6;
+}
+.u-btn:disabled,
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.u-btn.primary,
+.btn.primary {
+  background: $primary;
+  border-color: $primary;
+  color: #fff;
+}
+.u-btn.primary:hover,
+.btn.primary:hover {
+  filter: brightness(0.95);
+}
+.u-btn.danger,
+.btn.danger {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: #fff;
+}
+.u-btn.danger:hover,
+.btn.danger:hover {
+  filter: brightness(0.96);
+}
+.u-btn.ghost,
+.btn.ghost {
+  background: #fff;
+}
+
+// Larger variant (used where padding was 10x14 or similar)
+.u-btn.lg,
+.btn.lg {
+  padding: 10px 14px;
+  border-radius: 12px;
+}
+
+// Icon spin utility
+@keyframes u-spin {
+  from {
+    transform: rotate(0);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+.u-spin {
+  animation: u-spin 1s linear infinite;
+}

@@ -298,7 +298,9 @@ function GeomanPolygon({
       if (layerRef.current) {
         try {
           layerRef.current.remove();
-        } catch {}
+        } catch {
+          /* ignore remove */
+        }
         layerRef.current = null;
       }
       layerRef.current = e.layer;
@@ -323,7 +325,9 @@ function GeomanPolygon({
       if (layerRef.current) {
         try {
           layerRef.current.remove();
-        } catch {}
+        } catch {
+          /* ignore remove */
+        }
         layerRef.current = null;
       }
       onDirtyChange?.(true);
@@ -352,7 +356,9 @@ function GeomanPolygon({
       }
       try {
         layerRef.current.remove();
-      } catch {}
+      } catch {
+        /* ignore remove */
+      }
       layerRef.current = null;
     }
 
@@ -375,7 +381,9 @@ function GeomanPolygon({
           if (bounds && bounds.isValid()) {
             map.fitBounds(bounds, { padding: [20, 20] });
           }
-        } catch {}
+        } catch {
+          /* ignore fitBounds */
+        }
       }
 
       bindLayerEvents();
@@ -390,7 +398,9 @@ function GeomanPolygon({
     if (layerRef.current && style) {
       try {
         layerRef.current.setStyle(style);
-      } catch {}
+      } catch {
+        /* ignore style set */
+      }
     }
   }, [style]);
 
@@ -561,7 +571,6 @@ export default function FlialPolygons() {
         setLoading(false);
       }
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const onDirtyChange = (v) => setDirty(Boolean(v));

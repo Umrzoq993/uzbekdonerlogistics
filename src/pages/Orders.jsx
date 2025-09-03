@@ -133,7 +133,7 @@ export default function Orders() {
         setLoading(false);
       }
     })();
-  }, [qp.status, qp.flial_id, qp.phone, qp.courier_id, qp.limit, qp.offset]);
+  }, [qp]);
 
   // Pagination
   const safeRows = Array.isArray(rows) ? rows : [];

@@ -44,6 +44,6 @@ export async function updateUser({ user_id, username, full_name, password }) {
 }
 
 /** TODO: O‘chirish endpointi kelsa shu yerga qo‘shamiz */
-export async function deleteUser(id) {
+export async function deleteUser() {
   throw new Error("Delete endpoint berilmagan. Iltimos, API endpoint bering.");
 }

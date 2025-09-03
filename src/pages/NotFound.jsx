@@ -1,5 +1,6 @@
 import React from "react";
-import { motion } from "framer-motion";
+// framer-motion import olib tashlandi (animatsiyalar kerak bo'lsa qayta qo'shing)
+// import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 
 // A single-file, production-ready 404 page with animated SVG + motion effects.

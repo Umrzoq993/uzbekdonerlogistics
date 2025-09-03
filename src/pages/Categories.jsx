@@ -39,7 +39,7 @@ export default function Categories() {
   const [prodCreateOpen, setProdCreateOpen] = useState(false);
   const [prodEdit, setProdEdit] = useState(null);
 
-  const [isPending, startTransition] = useTransition();
+  const [, /* isPending */ startTransition] = useTransition();
 
   const selectedCat = useMemo(
     () => cats.find((c) => c.category_id === selectedId) || null,

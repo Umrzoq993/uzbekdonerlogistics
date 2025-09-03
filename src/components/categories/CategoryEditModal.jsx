@@ -2,6 +2,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getCategoryById, updateCategory } from "../../api/categories";
 import Modal from "../ui/Modal";
+import "../../styles/_buttons.scss";
+import "./category-edit-modal.scss";
 import { toast } from "react-toastify";
 import { Image as ImageIcon, Loader2, Trash2, Upload } from "lucide-react";
 
@@ -169,47 +171,6 @@ export default function CategoryEditModal({
             {saving ? <Loader2 className="spin" size={16} /> : null}
             Saqlash
           </button>
-          <style jsx>{`
-            .btn {
-              padding: 10px 14px;
-              border-radius: 12px;
-              font-weight: 700;
-              border: 1px solid #e5e7eb;
-              background: #fff;
-              color: #111827;
-              cursor: pointer;
-              display: inline-flex;
-              align-items: center;
-              gap: 8px;
-            }
-            .btn:hover {
-              background: #f3f4f6;
-            }
-            .btn:disabled {
-              opacity: 0.6;
-              cursor: not-allowed;
-            }
-            .btn.primary {
-              background: #ff6b00;
-              border-color: #ff6b00;
-              color: #fff;
-              box-shadow: 0 6px 16px rgba(255, 107, 0, 0.25);
-            }
-            .btn.primary:hover {
-              filter: brightness(0.95);
-            }
-            .spin {
-              animation: spin 1s linear infinite;
-            }
-            @keyframes spin {
-              from {
-                transform: rotate(0);
-              }
-              to {
-                transform: rotate(360deg);
-              }
-            }
-          `}</style>
         </>
       }
     >
@@ -221,8 +182,6 @@ export default function CategoryEditModal({
             {/* Chap: rasm uploader */}
             <div>
               <label className="field-label">Kategoriya rasmi</label>
-
-              {/* Agar rasm bor bo‘lsa — preview kartochka */}
               {shownImage ? (
                 <div className="image-card">
                   <img src={shownImage} alt="Kategoriya" />
@@ -250,7 +209,6 @@ export default function CategoryEditModal({
                   </div>
                 </div>
               ) : (
-                // Rasm yo‘q — drag&drop zonasi
                 <div
                   className="dropzone"
                   onDrop={onDrop}
@@ -270,7 +228,6 @@ export default function CategoryEditModal({
                   </div>
                 </div>
               )}
-
               <input
                 ref={fileInputRef}
                 type="file"
@@ -278,13 +235,11 @@ export default function CategoryEditModal({
                 style={{ display: "none" }}
                 onChange={onPickFile}
               />
-
               <p className="hint">
                 Tavsiya: kvadrat 1:1 (masalan 600×600). Kichik o‘lchamlar piksel
                 bo‘lib ko‘rinishi mumkin.
               </p>
             </div>
-
             {/* O'ng: matn va tartib maydonlari */}
             <div className="fields">
               <label>
@@ -303,7 +258,6 @@ export default function CategoryEditModal({
                   required
                 />
               </label>
-
               <div className="grid2-sm">
                 <label>
                   <span>Ko‘rsatish tartibi (queue)</span>
@@ -330,157 +284,7 @@ export default function CategoryEditModal({
           </div>
         </form>
       )}
-
-      <style jsx>{`
-        .loading {
-          padding: 24px;
-        }
-        .form-grid {
-          display: grid;
-          gap: 16px;
-        }
-        .grid2 {
-          display: grid;
-          grid-template-columns: 360px 1fr;
-          gap: 16px;
-        }
-        @media (max-width: 900px) {
-          .grid2 {
-            grid-template-columns: 1fr;
-          }
-        }
-        .field-label {
-          display: block;
-          font-size: 13px;
-          color: #334155;
-          margin-bottom: 8px;
-          font-weight: 600;
-        }
-
-        /* Dropzone */
-        .dropzone {
-          border: 1px dashed #cbd5e1;
-          border-radius: 14px;
-          background: #f8fafc;
-          min-height: 180px;
-          display: grid;
-          place-items: center;
-          cursor: pointer;
-          transition: 0.15s ease border-color, 0.15s ease box-shadow;
-        }
-        .dropzone:hover {
-          border-color: #94a3b8;
-          box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.2);
-        }
-        .dz-inner {
-          text-align: center;
-          color: #475569;
-          display: grid;
-          gap: 6px;
-          padding: 18px;
-        }
-        .dz-inner .icon {
-          display: grid;
-          place-items: center;
-        }
-        .dz-text strong {
-          color: #0f172a;
-        }
-        .dz-hint {
-          font-size: 12px;
-          color: #64748b;
-        }
-
-        /* Image preview card */
-        .image-card {
-          position: relative;
-          border: 1px solid #e5e7eb;
-          border-radius: 14px;
-          overflow: hidden;
-          background: #fff;
-          box-shadow: 0 8px 24px rgba(2, 6, 23, 0.06);
-        }
-        .image-card img {
-          display: block;
-          width: 100%;
-          height: auto;
-          aspect-ratio: 1 / 1;
-          object-fit: cover;
-          background: #f1f5f9;
-        }
-        .image-card .overlay {
-          position: absolute;
-          inset: auto 0 0 0;
-          background: linear-gradient(180deg, transparent, rgba(2, 6, 23, 0.6));
-          padding: 10px;
-          display: flex;
-          gap: 8px;
-          justify-content: flex-end;
-        }
-        .i-btn {
-          border: 1px solid #e5e7eb;
-          background: #fff;
-          color: #0f172a;
-          padding: 8px 10px;
-          border-radius: 10px;
-          font-weight: 700;
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          cursor: pointer;
-        }
-        .i-btn:hover {
-          background: #f3f4f6;
-        }
-        .i-btn.danger {
-          border-color: #fecaca;
-          background: #fee2e2;
-          color: #991b1b;
-        }
-
-        /* Fields */
-        .fields {
-          display: grid;
-          gap: 12px;
-        }
-        label {
-          display: grid;
-          gap: 6px;
-        }
-        label > span {
-          font-size: 13px;
-          color: #334155;
-          font-weight: 600;
-        }
-        input {
-          border: 1px solid #e5e7eb;
-          border-radius: 12px;
-          padding: 10px 12px;
-          outline: none;
-          background: #fff;
-          color: #0f172a;
-          transition: 0.15s ease border-color, 0.15s ease box-shadow;
-        }
-        input:focus {
-          border-color: #ff6b00;
-          box-shadow: 0 0 0 3px rgba(255, 107, 0, 0.2);
-        }
-        .grid2-sm {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 12px;
-        }
-        @media (max-width: 640px) {
-          .grid2-sm {
-            grid-template-columns: 1fr;
-          }
-        }
-        .hint {
-          margin: 8px 2px 0;
-          font-size: 12px;
-          color: #64748b;
-        }
-      `}</style>
+      {/* styles moved to category-edit-modal.scss */}
     </Modal>
   );
 }

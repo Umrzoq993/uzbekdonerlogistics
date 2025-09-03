@@ -1,0 +1,29 @@
+.form-grid {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+label {
+  display: grid;
+  gap: 6px;
+}
+label > span {
+  font-size: 13px;
+  color: #334155;
+}
+input {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 10px 12px;
+  outline: none;
+  background: #fff;
+  color: #111827;
+}
+input:focus {
+  border-color: #ff6b00;
+  box-shadow: 0 0 0 3px rgba(255, 107, 0, 0.2);
+}
+input[disabled] {
+  background: #f8fafc;
+  color: #6b7280;
+}

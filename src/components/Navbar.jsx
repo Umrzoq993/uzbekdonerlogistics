@@ -16,7 +16,7 @@ export default function Navbar({
   const [showCreate, setShowCreate] = useState(false);
   const menuRef = useRef(null);
 
-  const isAdmin = Boolean(user?.is_admin || user?.role === "admin");
+  // const isAdmin = Boolean(user?.is_admin || user?.role === "admin"); // unused
 
   const handleBurger = () => {
     if (broken) setToggled(!toggled);
