@@ -51,9 +51,10 @@ const Dashboard = () => {
     }
   }
 
+  // Avtomatik yuklash: startDate yoki finishDate o'zgarsa statistikalar yangilanadi
   useEffect(() => {
     load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */
-  }, []);
+  }, [startDate, finishDate]);
 
   function setRange(type) {
     const now = parseDate(todayStr());
@@ -77,39 +78,7 @@ const Dashboard = () => {
     }
   }
 
-  function exportCSV() {
-    if (!rows.length) return;
-    const header = [
-      "date",
-      "telegram_bot",
-      "operators",
-      "received",
-      "rejected",
-      "acceptance_percent",
-    ];
-    const lines = rows.map((r) => {
-      const total = r.received + r.rejected;
-      const ap = total === 0 ? 0 : +((r.received / total) * 100).toFixed(2);
-      return [
-        r.date,
-        r.telegram_bot,
-        r.operators,
-        r.received,
-        r.rejected,
-        ap,
-      ].join(",");
-    });
-    const csv = [header.join(","), ...lines].join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `order_statistics_${startDate}_${finishDate}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }
+  // CSV eksport qilish talab qilinmaydi – funksional olib tashlandi
 
   const summary = useMemo(() => summarizeStats(rows), [rows]);
   const totalOrders = summary.received + summary.rejected;
@@ -225,7 +194,6 @@ const Dashboard = () => {
           <button
             onClick={() => {
               setRange("today");
-              load();
             }}
           >
             Bugun
@@ -233,7 +201,6 @@ const Dashboard = () => {
           <button
             onClick={() => {
               setRange("7d");
-              load();
             }}
           >
             7 kun
@@ -241,7 +208,6 @@ const Dashboard = () => {
           <button
             onClick={() => {
               setRange("30d");
-              load();
             }}
           >
             30 kun
@@ -249,7 +215,6 @@ const Dashboard = () => {
           <button
             onClick={() => {
               setRange("thisMonth");
-              load();
             }}
           >
             Joriy oy
@@ -257,25 +222,12 @@ const Dashboard = () => {
           <button
             onClick={() => {
               setRange("lastMonth");
-              load();
             }}
           >
             O'tgan oy
           </button>
         </div>
-        <div className="actions">
-          <button onClick={load} disabled={loading}>
-            {loading ? "..." : "Yuklash"}
-          </button>
-          <button
-            className="btn-blue"
-            onClick={exportCSV}
-            disabled={!rows.length || loading}
-          >
-            CSV
-          </button>
-          {error && <span className="error-inline">{error}</span>}
-        </div>
+        {error && <div className="error-inline">{error}</div>}
       </section>
 
       <div className="stat-cards">
