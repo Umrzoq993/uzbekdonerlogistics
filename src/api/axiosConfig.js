@@ -3,7 +3,7 @@ import axios from "axios";
 
 const BASE_URL =
   (import.meta?.env?.VITE_API_BASE_URL ?? "").toString() ||
-  "https://api.uzbekdoner.uz";
+  "https://uzbekdoner.adminsite.uz";
 
 export const ACCESS_TOKEN_KEY = "access_token";
 
